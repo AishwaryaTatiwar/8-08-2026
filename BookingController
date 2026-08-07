@@ -246,3 +246,28 @@ namespace Airlinemgmtsystem.Controllers
         }
     }
 }
+
+2.PassengerDetails.cshtml (Small change)
+<input type="text" name="Passengers[0].PassengerName" />
+<input type="text" name="Passengers[1].PassengerName" />
+This probably already works if you're receiving List<Passenger>.
+
+3. SeatSelection.cshtml (Small change)
+Currently you're probably using
+ViewBag.BookingID
+Since the booking doesn't exist yet, remove that dependency.
+Instead use:
+ViewBag.Passengers
+ViewBag.Seats
+ViewBag.BaseFare
+These will now come from Session instead of the database.
+
+4. Payment.cshtml (Small change)
+Instead of displaying:
+ViewBag.Booking
+display:
+Flight details
+Passenger count
+Total amount
+using the data prepared by the controller from Session.
+
