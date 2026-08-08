@@ -275,3 +275,13 @@ SearchFlights View
     </tr>
 }
 
+@using (Html.BeginForm("PassengerDetails", "Booking", FormMethod.Post))
+{
+    @Html.Hidden("FlightID", ViewBag.Flight.FlightID)
+
+    <!-- passenger fields -->
+    <input type="text" name="Passengers[0].PassengerName" />
+    <input type="text" name="Passengers[1].PassengerName" />
+
+    <button type="submit">Continue</button>
+}
