@@ -1,0 +1,138 @@
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+
+namespace Airlinemgmtsystem.ViewModels
+{
+    // Used while entering passenger details
+    public class PassengerViewModel
+    {
+        [Required(ErrorMessage = "Passenger name is required")]
+        public string PassengerName { get; set; }
+
+        [Required(ErrorMessage = "Passenger age is required")]
+        [Range(1, 120, ErrorMessage = "Enter a valid age")]
+        public int PassengerAge { get; set; }
+
+        [Required(ErrorMessage = "Please select gender")]
+        public string PassengerGender { get; set; }
+    }
+
+    // Used for displaying seats in SeatSelection.cshtml
+    public class SeatViewModel
+    {
+        public int SeatID { get; set; }
+
+        public string SeatNumber { get; set; }
+
+        public string SeatType { get; set; }
+
+        public bool IsBooked { get; set; }
+    }
+
+    // Used by PassengerDetails.cshtml
+    public class PassengerDetailsViewModel
+    {
+        public int FlightID { get; set; }
+
+        public string FlightNumber { get; set; }
+
+        public string Source { get; set; }
+
+        public string Destination { get; set; }
+
+        public decimal Price { get; set; }
+
+        public int PassengerCount { get; set; }
+
+        public List<PassengerViewModel> Passengers { get; set; }
+    }
+
+    // Used by SeatSelection.cshtml
+    public class SeatSelectionViewModel
+    {
+        public int FlightID { get; set; }
+
+        public string FlightNumber { get; set; }
+
+        public string Source { get; set; }
+
+        public string Destination { get; set; }
+
+        // Price for all passengers before seat charges
+        public decimal BaseFare { get; set; }
+
+        public List<PassengerViewModel> Passengers { get; set; }
+
+        public List<SeatViewModel> Seats { get; set; }
+
+        // Passenger INDEX -> SeatID
+        //
+        // Example:
+        // 0 -> 15
+        // 1 -> 16
+        // 2 -> 20
+        //
+        // Passenger 0 gets SeatID 15
+        // Passenger 1 gets SeatID 16
+        // Passenger 2 gets SeatID 20
+        public Dictionary<int, int> SeatAssignments { get; set; }
+
+        public decimal SeatCharges { get; set; }
+
+        public decimal TotalAmount { get; set; }
+    }
+
+    // Used by Payment.cshtml
+    public class PaymentViewModel
+    {
+        public int FlightID { get; set; }
+
+        public string FlightNumber { get; set; }
+
+        public string Source { get; set; }
+
+        public string Destination { get; set; }
+
+        public List<PassengerViewModel> Passengers { get; set; }
+
+        // Passenger INDEX -> SeatID
+        public Dictionary<int, int> SeatAssignments { get; set; }
+
+        public decimal BaseFare { get; set; }
+
+        public decimal SeatCharges { get; set; }
+
+        public decimal TotalAmount { get; set; }
+
+        [Required(ErrorMessage = "Please select a payment method")]
+        public string PaymentMethod { get; set; }
+    }
+
+    // Used after successful payment / booking creation
+    public class BookingConfirmationViewModel
+    {
+        public int BookingID { get; set; }
+
+        public int FlightID { get; set; }
+
+        public string FlightNumber { get; set; }
+
+        public string Source { get; set; }
+
+        public string Destination { get; set; }
+
+        public List<PassengerViewModel> Passengers { get; set; }
+
+        public decimal BaseFare { get; set; }
+
+        public decimal SeatCharges { get; set; }
+
+        public decimal TotalAmount { get; set; }
+
+        public string PaymentMethod { get; set; }
+
+        public string BookingStatus { get; set; }
+
+        public string PaymentStatus { get; set; }
+    }
+}
