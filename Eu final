@@ -1,0 +1,25 @@
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult EditUser(User model)
+{
+    if (!ModelState.IsValid)
+    {
+        return PartialView("EditUser", model);
+    }
+
+    var user = db.Users.Find(model.UserID);
+
+    if (user == null)
+    {
+        return HttpNotFound();
+    }
+
+    // Only update the role
+    user.Role = model.Role;
+
+    db.SaveChanges();
+
+    TempData["Success"] = "User role updated successfully.";
+
+    return RedirectToAction("ManageUsers");
+}
