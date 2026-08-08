@@ -16,3 +16,80 @@
         <option value="">Select Destination</option>
     </select>
 </div>
+<script>
+
+    $(document).ready(function () {
+
+        // CALL HOME CONTROLLER - GetSources()
+        $.ajax({
+            url: '/Home/GetSources',
+            type: 'GET',
+            success: function (data) {
+
+                $.each(data, function (i, source) {
+
+                    $('#source').append(
+                        '<option value="' + source + '">' +
+                        source +
+                        '</option>'
+                    );
+
+                });
+
+            },
+            error: function () {
+                alert('Unable to load source cities.');
+            }
+        });
+
+
+        // When Source is selected
+        $('#source').change(function () {
+
+            var source = $(this).val();
+
+            // Clear old destinations
+            $('#destination').empty();
+
+            $('#destination').append(
+                '<option value="">Select Destination</option>'
+            );
+
+            if (source == '') {
+                return;
+            }
+
+
+            // CALL HOME CONTROLLER - GetDestinations(source)
+            $.ajax({
+                url: '/Home/GetDestinations',
+                type: 'GET',
+
+                data: {
+                    source: source
+                },
+
+                success: function (data) {
+
+                    $.each(data, function (i, destination) {
+
+                        $('#destination').append(
+                            '<option value="' + destination + '">' +
+                            destination +
+                            '</option>'
+                        );
+
+                    });
+
+                },
+
+                error: function () {
+                    alert('Unable to load destinations.');
+                }
+            });
+
+        });
+
+    });
+
+</script>
