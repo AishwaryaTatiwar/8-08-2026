@@ -1,0 +1,91 @@
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult SeatSelection(
+    int[] passengerIndex,
+    int[] seatId,
+    decimal FinalAmount)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session[SESSION_FLIGHT_ID] == null ||
+        Session[SESSION_PASSENGERS] == null)
+        return RedirectToAction("Index");
+
+    if (passengerIndex == null || seatId == null ||
+        passengerIndex.Length != seatId.Length)
+    {
+        TempData["Message"] = "Please select seats for all passengers.";
+        return RedirectToAction("SeatSelection");
+    }
+
+    // Create passenger -> seat mapping
+    var seatMap = new Dictionary<int, int>();
+
+    for (int i = 0; i < passengerIndex.Length; i++)
+    {
+        if (seatMap.ContainsKey(passengerIndex[i]))
+        {
+            TempData["Message"] = "A passenger has more than one seat.";
+            return RedirectToAction("SeatSelection");
+        }
+
+        seatMap.Add(passengerIndex[i], seatId[i]);
+    }
+
+    // Get passengers from session
+    var passengers =
+        Session[SESSION_PASSENGERS] as List<Passenger>;
+
+    if (passengers == null ||
+        seatMap.Count != passengers.Count)
+    {
+        TempData["Message"] =
+            "Please select exactly one seat for every passenger.";
+
+        return RedirectToAction("SeatSelection");
+    }
+
+    // Check every selected seat
+    foreach (var item in seatMap)
+    {
+        int passengerIndexValue = item.Key;
+        int selectedSeatId = item.Value;
+
+        if (passengerIndexValue < 0 ||
+            passengerIndexValue >= passengers.Count)
+        {
+            TempData["Message"] = "Invalid passenger.";
+            return RedirectToAction("SeatSelection");
+        }
+
+        var seat = db.FlightSeats
+            .FirstOrDefault(s =>
+                s.SeatID == selectedSeatId &&
+                s.FlightID ==
+                (int)Session[SESSION_FLIGHT_ID]);
+
+        if (seat == null)
+        {
+            TempData["Message"] = "Invalid seat selected.";
+            return RedirectToAction("SeatSelection");
+        }
+
+        if (seat.IsBooked)
+        {
+            TempData["Message"] =
+                "Seat " + seat.SeatNumber + " is already booked.";
+
+            return RedirectToAction("SeatSelection");
+        }
+    }
+
+    // Store seat selection in Session
+    Session[SESSION_SEAT_MAP] = seatMap;
+
+    // Store final amount
+    Session[SESSION_FINAL_AMOUNT] = FinalAmount;
+
+    // IMPORTANT: go to Payment
+    return RedirectToAction("Payment");
+}
