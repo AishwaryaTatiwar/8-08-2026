@@ -1,0 +1,35 @@
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult DeleteFlight(Flight model)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session["Role"].ToString() != "Admin")
+        return RedirectToAction("Index", "Home");
+
+    Flight flight = db.Flights.Find(model.FlightID);
+
+    if (flight == null)
+        return HttpNotFound();
+
+    // Check for existing bookings
+    bool hasBookings = db.Bookings.Any(
+        b => b.FlightID == model.FlightID
+    );
+
+    if (hasBookings)
+    {
+        TempData["Error"] =
+            "This flight cannot be deleted because it has existing bookings.";
+
+        return RedirectToAction("ManageFlights");
+    }
+
+    db.Flights.Remove(flight);
+    db.SaveChanges();
+
+    TempData["Success"] = "Flight deleted successfully.";
+
+    return RedirectToAction("ManageFlights");
+}
