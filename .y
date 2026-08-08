@@ -1,0 +1,38 @@
+[HttpGet]
+public ActionResult SeatSelection()
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session[SESSION_FLIGHT_ID] == null || Session[SESSION_PASSENGERS] == null)
+        return RedirectToAction("Index");
+
+    int flightId = (int)Session[SESSION_FLIGHT_ID];
+
+    var passengers = Session[SESSION_PASSENGERS] as List<Passenger>;
+
+    if (passengers == null || passengers.Count == 0)
+        return RedirectToAction("Index");
+
+    var flight = db.Flights.FirstOrDefault(f => f.FlightID == flightId);
+
+    if (flight == null)
+        return HttpNotFound();
+
+    if (flight.Status != "Scheduled")
+    {
+        TempData["Message"] = "This flight is not available for booking.";
+        return RedirectToAction("Index");
+    }
+
+    var seats = db.FlightSeats
+        .Where(s => s.FlightID == flightId)
+        .OrderBy(s => s.SeatNumber)
+        .ToList();
+
+    ViewBag.Passengers = passengers;
+    ViewBag.Seats = seats;
+    ViewBag.BaseFare = flight.Price;
+
+    return View();
+}
