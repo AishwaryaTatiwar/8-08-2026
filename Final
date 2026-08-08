@@ -1,0 +1,215 @@
+// ============================================================
+// GET: Show the seat map, restoring any seats already picked
+// ============================================================
+public ActionResult SeatSelection()
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session[SESSION_FLIGHT_ID] == null || Session[SESSION_PASSENGERS] == null)
+        return RedirectToAction("Index");
+
+    int flightId = (int)Session[SESSION_FLIGHT_ID];
+
+    var passengers = Session[SESSION_PASSENGERS] as List<Passenger>;
+
+    if (passengers == null || passengers.Count == 0)
+        return RedirectToAction("Index");
+
+    var flight = db.Flights.FirstOrDefault(f => f.FlightID == flightId);
+
+    if (flight == null)
+        return HttpNotFound();
+
+    if (flight.Status != "Scheduled")
+    {
+        TempData["Message"] = "This flight is not available for booking.";
+        return RedirectToAction("Index");
+    }
+
+    var seats = db.FlightSeats
+        .Where(s => s.FlightID == flightId)
+        .OrderBy(s => s.SeatNumber)
+        .ToList();
+
+    // Restore any seats already assigned in this session (e.g. after a redirect/reload)
+    var seatMap = Session[SESSION_SEAT_MAP] as Dictionary<int, int> ?? new Dictionary<int, int>();
+
+    ViewBag.Passengers = passengers;
+    ViewBag.Seats = seats;
+    ViewBag.BaseFare = flight.Price;
+    ViewBag.SeatMap = seatMap;
+
+    return View(seats);
+}
+
+
+// ============================================================
+// POST (AJAX): Save one passenger -> seat assignment to Session
+// ============================================================
+[HttpPost]
+[ValidateAntiForgeryToken]
+public JsonResult AssignSeat(int passengerId, int seatId)
+{
+    if (Session["UserID"] == null)
+        return Json(new { success = false, message = "Session expired. Please log in again." });
+
+    if (Session[SESSION_FLIGHT_ID] == null || Session[SESSION_PASSENGERS] == null)
+        return Json(new { success = false, message = "Session expired. Please start booking again." });
+
+    int flightId = (int)Session[SESSION_FLIGHT_ID];
+    var passengers = Session[SESSION_PASSENGERS] as List<Passenger>;
+
+    if (passengers == null || passengers.Count == 0)
+        return Json(new { success = false, message = "No passengers found in session." });
+
+    var passenger = passengers.FirstOrDefault(p => p.PassengerID == passengerId);
+
+    if (passenger == null)
+        return Json(new { success = false, message = "Passenger does not exist: " + passengerId });
+
+    var seat = db.FlightSeats.FirstOrDefault(s => s.SeatID == seatId);
+
+    if (seat == null || seat.FlightID != flightId)
+        return Json(new { success = false, message = "Invalid seat selected." });
+
+    if (seat.IsBooked)
+        return Json(new { success = false, message = "This seat is already booked." });
+
+    var seatMap = Session[SESSION_SEAT_MAP] as Dictionary<int, int> ?? new Dictionary<int, int>();
+
+    // If this passenger already had a seat, remove that old mapping first
+    // (so a passenger can only ever occupy one seat at a time).
+    if (seatMap.ContainsKey(passengerId))
+        seatMap.Remove(passengerId);
+
+    // Prevent two passengers from holding the same seat.
+    if (seatMap.ContainsValue(seatId))
+    {
+        return Json(new
+        {
+            success = false,
+            message = "Seat " + seat.SeatNumber + " is already selected by another passenger."
+        });
+    }
+
+    seatMap[passengerId] = seatId;
+    Session[SESSION_SEAT_MAP] = seatMap;
+
+    // Compute running totals from the seats now in seatMap
+    var flight = db.Flights.FirstOrDefault(f => f.FlightID == flightId);
+    decimal baseFare = flight != null ? flight.Price : 0;
+    decimal seatCharge = 0;
+
+    foreach (var kvp in seatMap)
+    {
+        var s = db.FlightSeats.FirstOrDefault(x => x.SeatID == kvp.Value);
+        if (s == null) continue;
+
+        if (s.SeatType == "Window")
+            seatCharge += 800;
+        else if (s.SeatType == "Aisle")
+            seatCharge += 500;
+        else
+            seatCharge += 300;
+    }
+
+    decimal totalAmount = baseFare + seatCharge;
+
+    // Find the next passenger who still doesn't have a seat, for auto-advance
+    var nextPassenger = passengers.FirstOrDefault(p => !seatMap.ContainsKey(p.PassengerID));
+
+    return Json(new
+    {
+        success = true,
+        seatMap = seatMap,
+        baseFare = baseFare,
+        seatCharge = seatCharge,
+        totalAmount = totalAmount,
+        nextPassengerId = nextPassenger != null ? nextPassenger.PassengerID : (int?)null
+    });
+}
+
+
+// ============================================================
+// POST: Final confirm - validate Session data, then go to Payment
+// ============================================================
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult ConfirmSeats()
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session[SESSION_FLIGHT_ID] == null || Session[SESSION_PASSENGERS] == null)
+        return RedirectToAction("Index");
+
+    int flightId = (int)Session[SESSION_FLIGHT_ID];
+    var passengers = Session[SESSION_PASSENGERS] as List<Passenger>;
+
+    if (passengers == null || passengers.Count == 0)
+        return RedirectToAction("Index");
+
+    var seatMap = Session[SESSION_SEAT_MAP] as Dictionary<int, int>;
+
+    if (seatMap == null || seatMap.Count != passengers.Count)
+    {
+        TempData["Message"] = "Please select exactly one seat for every passenger.";
+        return RedirectToAction("SeatSelection");
+    }
+
+    // Every passenger must be present in the map (not just the right count)
+    foreach (var p in passengers)
+    {
+        if (!seatMap.ContainsKey(p.PassengerID))
+        {
+            TempData["Message"] = "Please select a seat for " + p.PassengerName + ".";
+            return RedirectToAction("SeatSelection");
+        }
+    }
+
+    // No two passengers sharing a seat (defensive check; AssignSeat already prevents this)
+    if (seatMap.Values.Distinct().Count() != seatMap.Values.Count())
+    {
+        TempData["Message"] = "Two passengers cannot select the same seat.";
+        return RedirectToAction("SeatSelection");
+    }
+
+    var flight = db.Flights.FirstOrDefault(f => f.FlightID == flightId);
+
+    if (flight == null)
+        return HttpNotFound();
+
+    decimal seatCharge = 0;
+
+    foreach (var kvp in seatMap)
+    {
+        var seat = db.FlightSeats.FirstOrDefault(s => s.SeatID == kvp.Value);
+
+        if (seat == null || seat.FlightID != flightId)
+        {
+            TempData["Message"] = "Invalid seat selected.";
+            return RedirectToAction("SeatSelection");
+        }
+
+        if (seat.IsBooked)
+        {
+            TempData["Message"] = "One of the selected seats is already booked.";
+            return RedirectToAction("SeatSelection");
+        }
+
+        if (seat.SeatType == "Window")
+            seatCharge += 800;
+        else if (seat.SeatType == "Aisle")
+            seatCharge += 500;
+        else
+            seatCharge += 300;
+    }
+
+    decimal finalAmount = flight.Price + seatCharge;
+
+    Session[SESSION_SEAT_MAP] = seatMap;
+    Session[SESSION_FINAL_AMOUNT] = finalAmount;
+
+    return RedirectToAction("Payment");
+}
