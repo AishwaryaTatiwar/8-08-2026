@@ -1,0 +1,141 @@
+<tr>
+    <td>@Html.DisplayFor(modelItem => item.UserID)</td>
+
+    <td>@Html.DisplayFor(modelItem => item.Username)</td>
+
+    <td>@Html.DisplayFor(modelItem => item.Email)</td>
+
+    <td>@Html.DisplayFor(modelItem => item.Role)</td>
+
+    <td>@Html.DisplayFor(modelItem => item.CreatedAt)</td>
+
+    <td>
+        <button type="button"
+                class="btn btn-warning btn-sm edit-role-btn"
+                data-user-id="@item.UserID"
+                data-username="@item.Username"
+                data-role="@item.Role"
+                data-bs-toggle="modal"
+                data-bs-target="#editRoleModal">
+            Edit Role
+        </button>
+    </td>
+</tr>
+
+<!-- Edit Role Modal -->
+<div class="modal fade"
+     id="editRoleModal"
+     tabindex="-1"
+     aria-labelledby="editRoleModalLabel"
+     aria-hidden="true">
+
+    <div class="modal-dialog">
+
+        <div class="modal-content">
+
+            <div class="modal-header bg-primary text-white">
+
+                <h5 class="modal-title" id="editRoleModalLabel">
+                    Edit User Role
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+
+            </div>
+
+            <form method="post"
+                  action="@Url.Action("EditUserRole", "Admin")">
+
+                @Html.AntiForgeryToken()
+
+                <div class="modal-body">
+
+                    <input type="hidden"
+                           id="editUserId"
+                           name="UserID" />
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Username
+                        </label>
+
+                        <input type="text"
+                               id="editUsername"
+                               class="form-control"
+                               readonly />
+
+                    </div>
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Role
+                        </label>
+
+                        <select name="Role"
+                                id="editRole"
+                                class="form-control"
+                                required>
+
+                            <option value="User">
+                                User
+                            </option>
+
+                            <option value="Admin">
+                                Admin
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button type="button"
+                            class="btn btn-secondary"
+                            data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+
+                    <button type="submit"
+                            class="btn btn-primary">
+                        Save Changes
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
+<script>
+
+    document.querySelectorAll(".edit-role-btn").forEach(function (button) {
+
+        button.addEventListener("click", function () {
+
+            var userId = this.getAttribute("data-user-id");
+            var username = this.getAttribute("data-username");
+            var role = this.getAttribute("data-role");
+
+            document.getElementById("editUserId").value = userId;
+
+            document.getElementById("editUsername").value = username;
+
+            document.getElementById("editRole").value = role;
+
+        });
+
+    });
+
+</script>
