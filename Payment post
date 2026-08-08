@@ -1,0 +1,129 @@
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult Payment(string paymentMethod)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session[SESSION_FLIGHT_ID] == null ||
+        Session[SESSION_PASSENGERS] == null ||
+        Session[SESSION_SEAT_MAP] == null ||
+        Session[SESSION_FINAL_AMOUNT] == null)
+    {
+        return RedirectToAction("Index");
+    }
+
+    int userId = (int)Session["UserID"];
+    int flightId = (int)Session[SESSION_FLIGHT_ID];
+
+    decimal finalAmount =
+        (decimal)Session[SESSION_FINAL_AMOUNT];
+
+    var passengers =
+        Session[SESSION_PASSENGERS] as List<Passenger>;
+
+    var seatMap =
+        Session[SESSION_SEAT_MAP] as Dictionary<int, int>;
+
+    if (passengers == null || seatMap == null)
+        return RedirectToAction("SeatSelection");
+
+    // 1. Create Booking
+    var booking = new Booking
+    {
+        UserID = userId,
+        FlightID = flightId,
+        TotalAmount = finalAmount,
+        BookingStatus = "Confirmed",
+        BookingDate = DateTime.Now
+    };
+
+    db.Bookings.Add(booking);
+    db.SaveChanges();
+
+    // 2. Create passengers first
+    var savedPassengers = new List<Passenger>();
+
+    foreach (var p in passengers)
+    {
+        var passenger = new Passenger
+        {
+            BookingID = booking.BookingID,
+            PassengerName = p.PassengerName,
+            PassengerAge = p.PassengerAge,
+            PassengerGender = p.PassengerGender,
+
+            // IMPORTANT:
+            // initially no seat
+            FlightSeatID = null
+        };
+
+        db.Passengers.Add(passenger);
+        savedPassengers.Add(passenger);
+    }
+
+    // Save to generate PassengerIDs
+    db.SaveChanges();
+
+    // 3. Assign seats
+    foreach (var item in seatMap)
+    {
+        int passengerIndex = item.Key;
+        int seatId = item.Value;
+
+        if (passengerIndex < 0 ||
+            passengerIndex >= savedPassengers.Count)
+        {
+            return RedirectToAction("SeatSelection");
+        }
+
+        Passenger passenger =
+            savedPassengers[passengerIndex];
+
+        FlightSeat seat = db.FlightSeats
+            .FirstOrDefault(s =>
+                s.SeatID == seatId &&
+                s.FlightID == flightId);
+
+        if (seat == null)
+        {
+            TempData["Message"] = "Invalid seat selected.";
+            return RedirectToAction(
+                "SeatSelection",
+                new { bookingId = booking.BookingID });
+        }
+
+        if (seat.IsBooked)
+        {
+            TempData["Message"] =
+                "Seat " + seat.SeatNumber +
+                " is already booked.";
+
+            return RedirectToAction(
+                "SeatSelection",
+                new { bookingId = booking.BookingID });
+        }
+
+        // 4. Connect both sides
+        seat.PassengerID = passenger.PassengerID;
+        seat.IsBooked = true;
+
+        passenger.FlightSeatID = seat.SeatID;
+    }
+
+    // 5. Save seat/passenger relationships
+    db.SaveChanges();
+
+    // 6. Save payment method if your Booking table has it
+    Session[SESSION_PAYMENT_METHOD] = paymentMethod;
+
+    // 7. Clear temporary booking data
+    Session.Remove(SESSION_FLIGHT_ID);
+    Session.Remove(SESSION_PASSENGERS);
+    Session.Remove(SESSION_SEAT_MAP);
+    Session.Remove(SESSION_FINAL_AMOUNT);
+
+    // 8. Finished
+    return RedirectToAction("Confirmation", "Booking",
+        new { id = booking.BookingID });
+}
