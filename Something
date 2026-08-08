@@ -1,0 +1,11 @@
+Payment payment = new Payment
+    {
+        BookingID = booking.BookingID,
+        PaymentMethod = paymentMethod,
+        PaymentDate = DateTime.Now,
+        PaymentStatus = "Paid",
+        Amount = amount
+    };
+
+    db.Payments.Add(payment);
+    db.SaveChanges();
