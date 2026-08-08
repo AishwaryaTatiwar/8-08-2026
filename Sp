@@ -1,0 +1,83 @@
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult SeatSelection(int[] passengerId, int[] seatId)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session[SESSION_FLIGHT_ID] == null ||
+        Session[SESSION_PASSENGERS] == null)
+        return RedirectToAction("Index");
+
+    var passengers = Session[SESSION_PASSENGERS] as List<Passenger>;
+
+    if (passengers == null || passengers.Count == 0)
+        return RedirectToAction("Index");
+
+    if (passengerId == null || seatId == null ||
+        passengerId.Length == 0 ||
+        passengerId.Length != seatId.Length)
+        return RedirectToAction("SeatSelection");
+
+    if (passengerId.Distinct().Count() != passengerId.Length)
+        return RedirectToAction("SeatSelection");
+
+    if (seatId.Distinct().Count() != seatId.Length)
+        return RedirectToAction("SeatSelection");
+
+    int flightId = (int)Session[SESSION_FLIGHT_ID];
+
+    var flight = db.Flights.FirstOrDefault(f => f.FlightID == flightId);
+
+    if (flight == null)
+        return HttpNotFound();
+
+    decimal seatCharge = 0;
+    var seatMap = new Dictionary<int, int>();
+
+    for (int i = 0; i < passengerId.Length; i++)
+    {
+        int pId = passengerId[i];
+        int sId = seatId[i];
+
+        var passenger = db.Passengers
+            .FirstOrDefault(p => p.PassengerID == pId);
+
+        if (passenger == null)
+        {
+            TempData["Message"] = "Passenger does not exist in database: " + pId;
+            return RedirectToAction("SeatSelection");
+        }
+
+        var seat = db.FlightSeats
+            .FirstOrDefault(s => s.SeatID == sId);
+
+        if (seat == null || seat.FlightID != flightId)
+        {
+            TempData["Message"] = "Invalid seat selected.";
+            return RedirectToAction("SeatSelection");
+        }
+
+        if (seat.IsBooked)
+        {
+            TempData["Message"] = "One of the selected seats is already booked.";
+            return RedirectToAction("SeatSelection");
+        }
+
+        seatMap[pId] = sId;
+
+        if (seat.SeatType == "Window")
+            seatCharge += 800;
+        else if (seat.SeatType == "Aisle")
+            seatCharge += 500;
+        else
+            seatCharge += 300;
+    }
+
+    decimal finalAmount = flight.Price + seatCharge;
+
+    Session[SESSION_SEAT_MAP] = seatMap;
+    Session[SESSION_FINAL_AMOUNT] = finalAmount;
+
+    return RedirectToAction("Payment");
+}
