@@ -1,0 +1,239 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using System.Web.Mvc;
+
+namespace Airlinemgmtsystem.Controllers
+{
+    public class BookingController : Controller
+    {
+        AirlineMgmtSystemEntities db = new AirlineMgmtSystemEntities();
+
+        // Session keys
+        private const string SESSION_FLIGHT_ID = "Booking_FlightID";
+        private const string SESSION_PASSENGERS = "Booking_Passengers";
+        private const string SESSION_SEAT_MAP = "Booking_SeatAssignments"; // passengerIndex -> SeatID
+        private const string SESSION_FINAL_AMOUNT = "Booking_FinalAmount";
+        private const string SESSION_PAYMENT_METHOD = "Booking_PaymentMethod";
+
+        //
+        // GET: /Booking/
+        public ActionResult Index()
+        {
+            return View();
+        }
+
+        public ActionResult PassengerDetails(int id)
+        {
+            if (Session["UserID"] == null)
+                return RedirectToAction("Login", "User");
+
+            Flight flight = db.Flights.Find(id);
+
+            if (flight == null)
+                return HttpNotFound();
+
+            ViewBag.Flight = flight;
+
+            return View();
+        }
+
+        [HttpPost]
+        public ActionResult PassengerDetails(int FlightID, List<Passenger> Passengers)
+        {
+            if (Session["UserID"] == null)
+                return RedirectToAction("Login", "User");
+
+            Flight flight = db.Flights.Find(FlightID);
+            if (flight == null)
+                return HttpNotFound();
+
+            Session[SESSION_FLIGHT_ID] = FlightID;
+            Session[SESSION_PASSENGERS] = Passengers;
+            Session[SESSION_FINAL_AMOUNT] = flight.Price * Passengers.Count;
+
+            return RedirectToAction("SeatSelection");
+        }
+
+        public ActionResult SeatSelection()
+        {
+            if (Session["UserID"] == null)
+                return RedirectToAction("Login", "User");
+
+            if (Session[SESSION_FLIGHT_ID] == null || Session[SESSION_PASSENGERS] == null)
+                return RedirectToAction("Index");
+
+            int flightId = (int)Session[SESSION_FLIGHT_ID];
+
+            ViewBag.BaseFare = Session[SESSION_FINAL_AMOUNT];
+            ViewBag.Passengers = Session[SESSION_PASSENGERS] as List<Passenger>;
+
+            ViewBag.Seats = db.FlightSeats
+                              .Where(x => x.FlightID == flightId)
+                              .OrderBy(x => x.SeatNumber)
+                              .ToList();
+
+            return View();
+        }
+
+        [HttpPost]
+        public ActionResult SeatSelection(int[] passengerIndex,
+                                           int[] seatId,
+                                           decimal FinalAmount)
+        {
+            if (Session["UserID"] == null)
+                return RedirectToAction("Login", "User");
+
+            if (Session[SESSION_PASSENGERS] == null)
+                return RedirectToAction("Index");
+
+            var seatMap = new Dictionary<int, int>();
+            for (int i = 0; i < seatId.Length; i++)
+                seatMap[passengerIndex[i]] = seatId[i];
+
+            Session[SESSION_SEAT_MAP] = seatMap;
+            Session[SESSION_FINAL_AMOUNT] = FinalAmount;
+
+            return RedirectToAction("Payment");
+        }
+
+        public ActionResult Payment()
+        {
+            if (Session["UserID"] == null)
+                return RedirectToAction("Login", "User");
+
+            if (Session[SESSION_FLIGHT_ID] == null)
+                return RedirectToAction("Index");
+
+            int flightId = (int)Session[SESSION_FLIGHT_ID];
+            Flight flight = db.Flights.Find(flightId);
+
+            if (flight == null)
+                return HttpNotFound();
+
+            ViewBag.Flight = flight;
+            ViewBag.FinalAmount = Session[SESSION_FINAL_AMOUNT];
+
+            return View();
+        }
+
+        [HttpPost]
+        public ActionResult Payment(string paymentMethod)
+        {
+            if (Session["UserID"] == null)
+                return RedirectToAction("Login", "User");
+
+            if (Session[SESSION_FLIGHT_ID] == null ||
+                Session[SESSION_PASSENGERS] == null ||
+                Session[SESSION_SEAT_MAP] == null)
+            {
+                return RedirectToAction("Index");
+            }
+
+            int userId = Convert.ToInt32(Session["UserID"]);
+            int flightId = (int)Session[SESSION_FLIGHT_ID];
+            var passengers = Session[SESSION_PASSENGERS] as List<Passenger>;
+            var seatMap = Session[SESSION_SEAT_MAP] as Dictionary<int, int>;
+            decimal finalAmount = (decimal)Session[SESSION_FINAL_AMOUNT];
+
+            using (var transaction = db.Database.BeginTransaction())
+            {
+                try
+                {
+                    // 1. Create the booking
+                    Booking booking = new Booking
+                    {
+                        UserID = userId,
+                        FlightID = flightId,
+                        BookingDate = DateTime.Now,
+                        TotalAmount = finalAmount,
+                        BookingStatus = "Confirmed"
+                    };
+                    db.Bookings.Add(booking);
+                    db.SaveChanges(); // need BookingID for FK below
+
+                    // 2. Add passengers and allocate seats
+                    for (int i = 0; i < passengers.Count; i++)
+                    {
+                        Passenger p = passengers[i];
+                        p.BookingID = booking.BookingID;
+
+                        db.Passengers.Add(p);
+                        db.SaveChanges(); // need PassengerID for seat assignment
+
+                        if (seatMap.TryGetValue(i, out int seatId))
+                        {
+                            FlightSeat seat = db.FlightSeats.Find(seatId);
+                            seat.IsBooked = true;
+                            seat.PassengerID = p.PassengerID;
+                            p.FlightSeatID = seat.SeatID;
+                        }
+                    }
+
+                    // 3. Decrement available seats on the flight
+                    Flight flight = db.Flights.Find(flightId);
+                    flight.AvailableSeats -= passengers.Count;
+                    if (flight.AvailableSeats < 0)
+                        flight.AvailableSeats = 0; // safety floor, shouldn't happen
+
+                    // 4. Record payment
+                    Payment payment = new Payment
+                    {
+                        BookingID = booking.BookingID,
+                        PaymentMethod = paymentMethod,
+                        Amount = finalAmount,
+                        PaymentStatus = "Success",
+                        PaymentDate = DateTime.Now,
+                        TransactionID = "TXN"
+                                      + DateTime.Now.ToString("yyyyMMddHHmmss")
+                                      + new Random().Next(1000, 9999)
+                    };
+                    db.Payments.Add(payment);
+
+                    db.SaveChanges();
+                    transaction.Commit();
+
+                    // Clear session state now that everything is persisted
+                    Session.Remove(SESSION_FLIGHT_ID);
+                    Session.Remove(SESSION_PASSENGERS);
+                    Session.Remove(SESSION_SEAT_MAP);
+                    Session.Remove(SESSION_FINAL_AMOUNT);
+                    Session.Remove(SESSION_PAYMENT_METHOD);
+
+                    return RedirectToAction("BookingSummary", new { bookingId = booking.BookingID });
+                }
+                catch (Exception)
+                {
+                    transaction.Rollback();
+                    TempData["Error"] = "Something went wrong while confirming your booking. Please try again.";
+                    return RedirectToAction("Payment");
+                }
+            }
+        }
+
+        public ActionResult BookingSummary(int bookingId)
+        {
+            Booking booking = db.Bookings.Find(bookingId);
+
+            if (booking == null)
+                return HttpNotFound();
+
+            Flight flight = db.Flights.Find(booking.FlightID);
+
+            Payment payment = db.Payments
+                                .FirstOrDefault(x => x.BookingID == bookingId);
+
+            var passengers = db.Passengers
+                               .Where(x => x.BookingID == bookingId)
+                               .ToList();
+
+            ViewBag.Booking = booking;
+            ViewBag.Flight = flight;
+            ViewBag.Payment = payment;
+            ViewBag.Passengers = passengers;
+
+            return View();
+        }
+    }
+}
