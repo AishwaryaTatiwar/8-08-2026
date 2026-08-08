@@ -1,0 +1,23 @@
+[HttpGet]
+public ActionResult SeatSelection(int bookingId)
+{
+    var booking = db.Bookings.FirstOrDefault(b => b.BookingID == bookingId);
+
+    if (booking == null)
+        return HttpNotFound();
+
+    var passengers = db.Passengers
+        .Where(p => p.BookingID == bookingId)
+        .ToList();
+
+    var seats = db.FlightSeats
+        .Where(s => s.FlightID == booking.FlightID)
+        .OrderBy(s => s.SeatNumber)
+        .ToList();
+
+    ViewBag.BookingID = bookingId;
+    ViewBag.Passengers = passengers;
+    ViewBag.Seats = seats;
+
+    return View();
+}
