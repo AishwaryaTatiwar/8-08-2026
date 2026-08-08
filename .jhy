@@ -129,3 +129,18 @@ public ActionResult Payment()
 
     return View();
 }
+
+string transactionId = "TXN" + DateTime.Now.ToString("yyyyMMddHHmmssfff");
+
+var payment = new Payment
+{
+    BookingID = bookingId,
+    Amount = finalAmount,
+    PaymentMethod = paymentMethod,
+    TransactionID = transactionId,
+    PaymentStatus = "Success",
+    PaymentDate = DateTime.Now
+};
+
+db.Payments.Add(payment);
+db.SaveChanges();
