@@ -1,0 +1,228 @@
+@model IEnumerable<Airlinemgmtsystem.Flight>
+
+@{
+    ViewBag.Title = "Search Flights";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card shadow mb-4">
+    <div class="card-header bg-primary text-white">
+        <h3><i class="bi bi-search"></i> Search Flights</h3>
+    </div>
+
+    <div class="card-body">
+
+        @using (Html.BeginForm())
+        {
+            <div class="row">
+
+                <!-- Source -->
+                <div class="col-md-4">
+                    <label class="form-label">Source</label>
+                    <select name="source" id="source" class="form-control" required>
+                        <option value="">Select Source</option>
+                    </select>
+                </div>
+
+                <!-- Destination -->
+                <div class="col-md-4">
+                    <label class="form-label">Destination</label>
+                    <select name="destination" id="destination"
+                            class="form-control" required>
+                        <option value="">Select Destination</option>
+                    </select>
+                </div>
+
+                <!-- Travel Date -->
+                <div class="col-md-3">
+                    <label class="form-label">Travel Date</label>
+                    <input type="date"
+                           name="travelDate"
+                           class="form-control"
+                           required />
+                </div>
+
+                <!-- Search Button -->
+                <div class="col-md-1 d-grid">
+                    <label>&nbsp;</label>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i>
+                    </button>
+                </div>
+
+            </div>
+        }
+
+    </div>
+</div>
+
+
+@if (Model != null)
+{
+    if (Model.Any())
+    {
+        <div class="row">
+
+            @foreach (var item in Model)
+            {
+                <div class="col-md-6 mb-4">
+
+                    <div class="card shadow h-100 border-primary">
+
+                        <div class="card-header bg-primary text-white d-flex justify-content-between">
+                            <strong>@item.Airline</strong>
+                            <span class="badge bg-success">@item.Status</span>
+                        </div>
+
+                        <div class="card-body">
+
+                            <h5>@item.FlightNumber</h5>
+
+                            <div class="row">
+
+                                <div class="col-6">
+                                    <small class="text-muted">From</small>
+                                    <h6>@item.Source</h6>
+                                </div>
+
+                                <div class="col-6 text-end">
+                                    <small class="text-muted">To</small>
+                                    <h6>@item.Destination</h6>
+                                </div>
+
+                            </div>
+
+                            <hr />
+
+                            <div class="row">
+
+                                <div class="col-6">
+                                    <small>Departure</small><br />
+                                    <strong>
+                                        @item.DepartureTime.ToString("dd MMM yyyy")
+                                    </strong>
+                                    <br />
+                                    <strong>
+                                        @item.DepartureTime.ToString("hh:mm tt")
+                                    </strong>
+                                </div>
+
+                                <div class="col-6 text-end">
+                                    <small>Arrival</small><br />
+                                    <strong>
+                                        @item.ArrivalTime.ToString("dd MMM yyyy")
+                                    </strong>
+                                    <br />
+                                    <strong>
+                                        @item.ArrivalTime.ToString("hh:mm tt")
+                                    </strong>
+                                </div>
+
+                            </div>
+
+                            <hr />
+
+                            <div class="d-flex justify-content-between">
+                                <span>
+                                    Seats left:
+                                    <strong>@item.AvailableSeats</strong>
+                                </span>
+
+                                <h5 class="text-success">
+                                    @item.Price
+                                </h5>
+                            </div>
+
+                        </div>
+
+                        <div class="card-footer text-end">
+
+                            <a href="@Url.Action(
+                                "PassengerDetails",
+                                "Booking",
+                                new { id = item.FlightID })"
+                               class="btn btn-success">
+
+                                <i class="bi bi-ticket-perforated"></i>
+                                Book Now
+
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-warning text-center">
+            No scheduled flights found.
+        </div>
+    }
+}
+
+
+<script>
+
+    $(document).ready(function () {
+
+        // Load Source cities
+        $.getJSON('@Url.Action("GetSources", "Home")',
+            function (data) {
+
+                $.each(data, function (i, source) {
+
+                    $('#source').append(
+                        $('<option></option>')
+                            .val(source)
+                            .text(source)
+                    );
+
+                });
+
+            });
+
+
+        // Load Destination cities
+        $('#source').change(function () {
+
+            var source = $(this).val();
+
+            $('#destination')
+                .empty()
+                .append(
+                    '<option value="">Select Destination</option>'
+                );
+
+            if (source !== '') {
+
+                $.getJSON(
+                    '@Url.Action("GetDestinations", "Home")',
+                    { source: source },
+
+                    function (data) {
+
+                        $.each(data, function (i, destination) {
+
+                            $('#destination').append(
+                                $('<option></option>')
+                                    .val(destination)
+                                    .text(destination)
+                            );
+
+                        });
+
+                    }
+                );
+
+            }
+
+        });
+
+    });
+
+</script>
