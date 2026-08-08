@@ -22,3 +22,85 @@ public ActionResult Payment()
 
     return View();
 }
+
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult Payment(string paymentMethod)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session[SESSION_FLIGHT_ID] == null ||
+        Session[SESSION_SEAT_MAP] == null ||
+        Session[SESSION_FINAL_AMOUNT] == null)
+        return RedirectToAction("Index");
+
+    int userId = (int)Session["UserID"];
+    int flightId = (int)Session[SESSION_FLIGHT_ID];
+    decimal finalAmount = (decimal)Session[SESSION_FINAL_AMOUNT];
+
+    var seatMap = Session[SESSION_SEAT_MAP] as Dictionary<int, int>;
+
+    if (seatMap == null || seatMap.Count == 0)
+        return RedirectToAction("SeatSelection");
+
+    // Create Booking
+    var booking = new Booking
+    {
+        UserID = userId,
+        FlightID = flightId,
+        TotalAmount = finalAmount,
+        Status = "Confirmed",
+        BookingDate = DateTime.Now
+    };
+
+    db.Bookings.Add(booking);
+    db.SaveChanges();
+
+    // BookingID is generated after SaveChanges()
+    int bookingId = booking.BookingID;
+
+    // Update selected seats
+    foreach (var item in seatMap)
+    {
+        int passengerId = item.Key;
+        int seatId = item.Value;
+
+        var seat = db.FlightSeats.FirstOrDefault(s => s.SeatID == seatId);
+
+        if (seat == null)
+        {
+            return RedirectToAction("SeatSelection");
+        }
+
+        if (seat.IsBooked)
+        {
+            ViewBag.Message = "One of the selected seats is already booked.";
+            return View();
+        }
+
+        seat.IsBooked = true;
+        seat.PassengerID = passengerId;
+    }
+
+    // Create Payment
+    var payment = new Payment
+    {
+        BookingID = bookingId,
+        Amount = finalAmount,
+        PaymentMethod = paymentMethod,
+        PaymentStatus = "Success",
+        PaymentDate = DateTime.Now
+    };
+
+    db.Payments.Add(payment);
+    db.SaveChanges();
+
+    // Clear booking-related Session data
+    Session.Remove(SESSION_FLIGHT_ID);
+    Session.Remove(SESSION_PASSENGERS);
+    Session.Remove(SESSION_SEAT_MAP);
+    Session.Remove(SESSION_FINAL_AMOUNT);
+
+    return RedirectToAction("Confirmation", new { id = bookingId });
+}
