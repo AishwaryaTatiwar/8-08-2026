@@ -94,3 +94,81 @@
     </div>
 
 </div>
+@model AirlineMgmtSystem.User
+
+@{
+    ViewBag.Title = "Edit User Role";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+
+    <div class="card shadow">
+
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Edit User Role</h3>
+        </div>
+
+        <div class="card-body">
+
+            <form action="@Url.Action("EditUser", "Admin")"
+                  method="post">
+
+                <input type="hidden"
+                       name="UserID"
+                       value="@Model.UserID" />
+
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.Username"
+                           readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+
+                    <input type="text"
+                           class="form-control"
+                           value="@Model.Email"
+                           readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Role</label>
+
+                    <select name="Role"
+                            class="form-control">
+
+                        <option value="Customer"
+                                @(Model.Role == "Customer" ? "selected" : "")>
+                            Customer
+                        </option>
+
+                        <option value="Admin"
+                                @(Model.Role == "Admin" ? "selected" : "")>
+                            Admin
+                        </option>
+
+                    </select>
+                </div>
+
+                <button type="submit"
+                        class="btn btn-success">
+                    Save Changes
+                </button>
+
+                <a href="@Url.Action("ManageUsers", "Admin")"
+                   class="btn btn-secondary">
+                    Cancel
+                </a>
+
+            </form>
+
+        </div>
+
+    </div>
+
+</div>
