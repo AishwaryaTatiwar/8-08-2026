@@ -1,0 +1,75 @@
+public ActionResult Dashboard()
+{
+    // Basic statistics
+    ViewBag.TotalFlights = db.Flights.Count();
+
+    ViewBag.TotalUsers = db.Users.Count(x => x.Role == "Customer");
+
+    ViewBag.TotalBookings = db.Bookings.Count();
+
+    ViewBag.TotalRevenue = db.Payments
+        .Where(x => x.PaymentStatus == "Success")
+        .Sum(x => (decimal?)x.Amount) ?? 0;
+
+    // Booking statistics
+    ViewBag.ConfirmedBookings = db.Bookings
+        .Count(x => x.BookingStatus == "Confirmed");
+
+    ViewBag.PendingBookings = db.Bookings
+        .Count(x => x.BookingStatus == "Pending");
+
+    ViewBag.CancelledBookings = db.Bookings
+        .Count(x => x.BookingStatus == "Cancelled");
+
+    // Available seats
+    ViewBag.AvailableSeats =
+        db.Flights.Sum(x => (int?)x.AvailableSeats) ?? 0;
+
+
+    // -----------------------------
+    // FLIGHT STATUS STATISTICS
+    // -----------------------------
+
+    ViewBag.ScheduledFlights = db.Flights
+        .Count(x => x.Status == "Scheduled");
+
+    ViewBag.DelayedFlights = db.Flights
+        .Count(x => x.Status == "Delayed");
+
+    ViewBag.CancelledFlights = db.Flights
+        .Count(x => x.Status == "Cancelled");
+
+
+    // -----------------------------
+    // MONTHLY REVENUE
+    // -----------------------------
+
+    var currentYear = DateTime.Now.Year;
+
+    var monthlyRevenue = db.Payments
+        .Where(x => x.PaymentStatus == "Success"
+                 && x.PaymentDate.Year == currentYear)
+        .GroupBy(x => x.PaymentDate.Month)
+        .Select(g => new
+        {
+            Month = g.Key,
+            Revenue = g.Sum(x => (decimal?)x.Amount) ?? 0
+        })
+        .ToList();
+
+    ViewBag.RevenueLabels = string.Join(",",
+        monthlyRevenue
+            .OrderBy(x => x.Month)
+            .Select(x => "'" +
+                new DateTime(currentYear, x.Month, 1)
+                .ToString("MMM") +
+                "'"));
+
+    ViewBag.RevenueData = string.Join(",",
+        monthlyRevenue
+            .OrderBy(x => x.Month)
+            .Select(x => x.Revenue.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+
+
+    return View();
+}
