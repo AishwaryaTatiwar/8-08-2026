@@ -104,3 +104,28 @@ public ActionResult Payment(string paymentMethod)
 
     return RedirectToAction("Confirmation", new { id = bookingId });
 }
+public ActionResult Payment()
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session[SESSION_FLIGHT_ID] == null ||
+        Session[SESSION_PASSENGERS] == null ||
+        Session[SESSION_SEAT_MAP] == null ||
+        Session[SESSION_FINAL_AMOUNT] == null)
+        return RedirectToAction("Index");
+
+    int flightId = (int)Session[SESSION_FLIGHT_ID];
+
+    Flight flight = db.Flights.Find(flightId);
+
+    if (flight == null)
+        return HttpNotFound();
+
+    decimal finalAmount = (decimal)Session[SESSION_FINAL_AMOUNT];
+
+    ViewBag.Flight = flight;
+    ViewBag.FinalAmount = finalAmount;
+
+    return View();
+}
