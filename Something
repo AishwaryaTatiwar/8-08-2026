@@ -9,3 +9,16 @@ Payment payment = new Payment
 
     db.Payments.Add(payment);
     db.SaveChanges();
+Payment payment = new Payment
+{
+    TransactionID = transactionId,
+    BookingID = booking.BookingID,
+    PaymentMethod = paymentMethod,
+    PaymentDate = DateTime.Now,
+    PaymentStatus = "Paid",
+    Amount = amount
+};
+
+db.Payments.Add(payment);
+db.SaveChanges();
+string transactionId = "TXN" + DateTime.Now.ToString("yyyyMMddHHmmssfff");
