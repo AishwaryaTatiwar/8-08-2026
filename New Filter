@@ -1,0 +1,53 @@
+<div class="card mb-3">
+    <div class="card-body">
+
+        <form method="get" action="@Url.Action("ManageFlights", "Admin")">
+
+            <div class="row">
+
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Airline</label>
+
+                    <select name="airline" class="form-select">
+                        <option value="">All Airlines</option>
+
+                        <option value="Emirates"
+                                @(ViewBag.Airline == "Emirates" ? "selected" : "")>
+                            Emirates
+                        </option>
+
+                        <option value="Qatar Airways"
+                                @(ViewBag.Airline == "Qatar Airways" ? "selected" : "")>
+                            Qatar Airways
+                        </option>
+
+                        <option value="Air India"
+                                @(ViewBag.Airline == "Air India" ? "selected" : "")>
+                            Air India
+                        </option>
+
+                        <option value="IndiGo"
+                                @(ViewBag.Airline == "IndiGo" ? "selected" : "")>
+                            IndiGo
+                        </option>
+
+                    </select>
+                </div>
+
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        Filter
+                    </button>
+
+                    <a href="@Url.Action("ManageFlights", "Admin")"
+                       class="btn btn-secondary">
+                        Clear
+                    </a>
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
