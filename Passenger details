@@ -1,0 +1,45 @@
+@using (Html.BeginForm("PassengerDetails", "Booking", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+
+    @Html.HiddenFor(m => m.FlightID)
+
+    <h3>Flight Details</h3>
+
+    <p>
+        @Model.Source → @Model.Destination
+    </p>
+
+    <p>
+        Flight: @Model.FlightNumber
+    </p>
+
+    <p>
+        Fare per passenger: ₹@Model.Price
+    </p>
+
+    <h3>Passenger Details</h3>
+
+    <div id="passengers">
+        <div class="passenger">
+            <input type="text"
+                   name="Passengers[0].PassengerName"
+                   placeholder="Passenger Name"
+                   required />
+
+            <input type="number"
+                   name="Passengers[0].PassengerAge"
+                   placeholder="Age"
+                   required />
+
+            <select name="Passengers[0].PassengerGender" required>
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+        </div>
+    </div>
+
+    <button type="submit">Continue to Seat Selection</button>
+}
