@@ -1,0 +1,31 @@
+foreach (var item in seatMap)
+{
+    int passengerId = item.Key;
+    int seatId = item.Value;
+
+    // Check that passenger actually exists
+    var passenger = db.Passengers.FirstOrDefault(p => p.PassengerID == passengerId);
+
+    if (passenger == null)
+    {
+        ViewBag.Message = "Passenger does not exist: " + passengerId;
+        return View("SeatSelection");
+    }
+
+    var seat = db.FlightSeats.FirstOrDefault(s => s.SeatID == seatId);
+
+    if (seat == null)
+    {
+        ViewBag.Message = "Seat does not exist: " + seatId;
+        return View("SeatSelection");
+    }
+
+    if (seat.IsBooked)
+    {
+        ViewBag.Message = "One of the selected seats is already booked.";
+        return View("SeatSelection");
+    }
+
+    seat.IsBooked = true;
+    seat.PassengerID = passengerId;
+}
