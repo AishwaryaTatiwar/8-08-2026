@@ -3,3 +3,29 @@
    data-id="@item.UserID">
     <i class="bi bi-pencil-square"></i>
 </a>
+
+$(document).on("click", ".edit-user-btn", function () {
+
+    var id = $(this).data("id");
+
+    $.ajax({
+        url: '@Url.Action("EditUser", "Admin")',
+        type: 'GET',
+        data: { id: id },
+
+        success: function (data) {
+
+            $("#editUserModal .modal-body").html(data);
+
+            var modal = new bootstrap.Modal(
+                document.getElementById("editUserModal")
+            );
+
+            modal.show();
+        },
+
+        error: function (xhr) {
+            console.log(xhr.responseText);
+        }
+    });
+});
