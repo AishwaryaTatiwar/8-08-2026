@@ -172,3 +172,13 @@
     </div>
 
 </div>
+[HttpGet]
+public ActionResult EditUser(int id)
+{
+    var user = db.Users.FirstOrDefault(x => x.UserID == id);
+
+    if (user == null)
+        return HttpNotFound();
+
+    return View(user);
+}
