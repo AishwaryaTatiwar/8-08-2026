@@ -1,0 +1,86 @@
+[HttpPost]
+public ActionResult CancelBooking(int bookingId)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    int userId = Convert.ToInt32(Session["UserID"]);
+
+    Booking booking = db.Bookings.Find(bookingId);
+
+    if (booking == null)
+        return HttpNotFound();
+
+    // Ownership check — don't let a user cancel someone else's booking
+    if (booking.UserID != userId)
+        return new HttpStatusCodeResult(403);
+
+    if (booking.BookingStatus == "Cancelled")
+    {
+        TempData["Error"] = "This booking is already cancelled.";
+        return RedirectToAction("BookingSummary", new { bookingId = bookingId });
+    }
+
+    Flight flight = db.Flights.Find(booking.FlightID);
+
+    // Optional business rule: block cancellation once the flight has departed
+    if (flight != null && flight.DepartureTime <= DateTime.Now)
+    {
+        TempData["Error"] = "This flight has already departed; it cannot be cancelled.";
+        return RedirectToAction("BookingSummary", new { bookingId = bookingId });
+    }
+
+    using (var transaction = db.Database.BeginTransaction())
+    {
+        try
+        {
+            var passengers = db.Passengers
+                                .Where(p => p.BookingID == bookingId)
+                                .ToList();
+
+            // 1. Free up each booked seat
+            foreach (var p in passengers)
+            {
+                if (p.FlightSeatID.HasValue)
+                {
+                    FlightSeat seat = db.FlightSeats.Find(p.FlightSeatID.Value);
+                    if (seat != null)
+                    {
+                        seat.IsBooked = false;
+                        seat.PassengerID = null;
+                    }
+                    p.FlightSeatID = null;
+                }
+            }
+
+            // 2. Restore available seat count on the flight
+            if (flight != null)
+            {
+                flight.AvailableSeats += passengers.Count;
+            }
+
+            // 3. Mark the booking cancelled
+            booking.BookingStatus = "Cancelled";
+
+            // 4. Mark payment as refunded (don't delete the payment record)
+            Payment payment = db.Payments
+                                 .FirstOrDefault(x => x.BookingID == bookingId);
+            if (payment != null)
+            {
+                payment.PaymentStatus = "Refunded";
+            }
+
+            db.SaveChanges();
+            transaction.Commit();
+
+            TempData["Message"] = "Your booking has been cancelled.";
+            return RedirectToAction("BookingSummary", new { bookingId = bookingId });
+        }
+        catch (Exception)
+        {
+            transaction.Rollback();
+            TempData["Error"] = "Something went wrong while cancelling your booking. Please try again.";
+            return RedirectToAction("BookingSummary", new { bookingId = bookingId });
+        }
+    }
+}
