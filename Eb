@@ -1,0 +1,111 @@
+@model Airlinemgmtsystem.Booking
+
+@using (Html.BeginForm("EditBooking", "Admin", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+
+    @Html.HiddenFor(model => model.BookingID)
+
+    <div class="form-group">
+        <label>Booking ID</label>
+        <input type="text"
+               class="form-control"
+               value="@Model.BookingID"
+               readonly />
+    </div>
+
+    <div class="form-group mt-3">
+        <label>Booking Status</label>
+
+        <select name="BookingStatus" class="form-control">
+            <option value="Pending"
+                    @(Model.BookingStatus == "Pending" ? "selected" : "")>
+                Pending
+            </option>
+
+            <option value="Confirmed"
+                    @(Model.BookingStatus == "Confirmed" ? "selected" : "")>
+                Confirmed
+            </option>
+
+            <option value="Cancelled"
+                    @(Model.BookingStatus == "Cancelled" ? "selected" : "")>
+                Cancelled
+            </option>
+        </select>
+    </div>
+
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary">
+            Update Status
+        </button>
+
+        <button type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal">
+            Cancel
+        </button>
+    </div>
+}
+<a href="javascript:void(0)"
+   class="btn btn-info btn-sm edit-booking-btn"
+   data-id="@item.BookingID">
+    Edit
+</a>
+<div id="editBookingModal"
+     class="modal fade"
+     tabindex="-1">
+
+    <div class="modal-dialog">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    Edit Booking Status
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+            </div>
+
+            <div class="modal-body">
+            </div>
+
+        </div>
+
+    </div>
+</div>
+<script>
+    $(document).ready(function () {
+
+        $(".edit-booking-btn").click(function () {
+
+            var id = $(this).data("id");
+
+            $.ajax({
+                url: '@Url.Action("EditBooking", "Admin")',
+                type: 'GET',
+                data: { id: id },
+
+                success: function (data) {
+
+                    $("#editBookingModal .modal-body").html(data);
+
+                    var modal = new bootstrap.Modal(
+                        document.getElementById("editBookingModal")
+                    );
+
+                    modal.show();
+                },
+
+                error: function () {
+                    alert("Unable to load booking.");
+                }
+            });
+        });
+
+    });
+</script>
