@@ -1,0 +1,310 @@
+@using Airlinemgmtsystem
+@{
+    ViewBag.Title = "Seat Selection";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var passengers = ViewBag.Passengers as List<Airlinemgmtsystem.Passenger>;
+    var seats = ViewBag.Seats as List<Airlinemgmtsystem.FlightSeat>;
+    int bookingId = ViewBag.BookingID;
+}
+
+<div class="container mt-4">
+
+    @if (TempData["Message"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Message"]
+        </div>
+    }
+
+    <div class="card shadow">
+
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Select Seats</h3>
+        </div>
+
+        <div class="card-body">
+
+            @using (Html.BeginForm("SeatSelection", "Booking", FormMethod.Post, new { id = "seatForm" }))
+            {
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="bookingId" value="@bookingId" />
+
+                <div class="form-group mb-4">
+                    <label>
+                        <strong>Select Passenger</strong>
+                    </label>
+
+                    <select id="passengerSelect" class="form-control">
+                        <option value="">-- Select Passenger --</option>
+
+                        @if (passengers != null)
+                        {
+                            foreach (var passenger in passengers)
+                            {
+                                <option value="@passenger.PassengerID">
+                                    @passenger.PassengerName
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+
+                <div class="alert alert-info">
+                    <strong>Instructions:</strong>
+                    Select a passenger first, then click an available seat.
+                    Each passenger can have only one seat.
+                </div>
+
+                <div class="mb-3">
+                    <span class="badge badge-success">Available</span>
+                    <span class="badge badge-primary">Selected</span>
+                    <span class="badge badge-danger">Booked</span>
+                </div>
+
+                <h5 class="mb-3">Select Seat</h5>
+
+                <div class="row">
+
+                    @if (seats != null)
+                    {
+                        foreach (var seat in seats)
+                        {
+                            int price = 300;
+
+                            if (seat.SeatType == "Window")
+                            {
+                                price = 800;
+                            }
+                            else if (seat.SeatType == "Aisle")
+                            {
+                                price = 500;
+                            }
+
+                            string buttonClass = seat.IsBooked
+                                ? "btn-danger"
+                                : "btn-success";
+
+                            <div class="col-md-2 col-sm-3 col-4 mb-3">
+
+                                <button type="button"
+                                        class="btn @buttonClass seatButton w-100"
+                                        data-seat-id="@seat.SeatID"
+                                        data-seat-number="@seat.SeatNumber"
+                                        data-price="@price"
+                                        @(seat.IsBooked ? "disabled" : "")>
+
+                                    @seat.SeatNumber
+                                    <br />
+                                    <small>₹@price</small>
+
+                                </button>
+
+                            </div>
+                        }
+                    }
+
+                </div>
+
+                <hr />
+
+                <h5>Selected Seats</h5>
+
+                <div id="selectedSeats" class="mb-3">
+                    <p class="text-muted">
+                        No seats selected yet.
+                    </p>
+                </div>
+
+                <!-- Hidden inputs will be created here -->
+                <div id="seatAssignments"></div>
+
+                <button type="submit"
+                        class="btn btn-primary btn-lg"
+                        id="continueButton">
+
+                    Continue to Payment
+
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .seatButton {
+        min-height: 60px;
+        font-weight: 600;
+    }
+
+    .seat-selected {
+        background-color: #007bff !important;
+        border-color: #007bff !important;
+        color: white !important;
+    }
+</style>
+
+<script>
+
+    // passengerId -> seat information
+    var selectedSeats = {};
+
+    document.querySelectorAll(".seatButton").forEach(function (button) {
+
+        button.addEventListener("click", function () {
+
+            var passengerSelect = document.getElementById("passengerSelect");
+
+            var passengerId = passengerSelect.value;
+
+            if (passengerId === "") {
+                alert("Please select a passenger first.");
+                return;
+            }
+
+            var passengerName =
+                passengerSelect.options[passengerSelect.selectedIndex].text;
+
+            var seatId = this.getAttribute("data-seat-id");
+            var seatNumber = this.getAttribute("data-seat-number");
+            var price = parseInt(this.getAttribute("data-price"));
+
+            // If this passenger already has a seat,
+            // remove the previous selection
+            if (selectedSeats[passengerId]) {
+
+                var oldSeatId = selectedSeats[passengerId].seatId;
+
+                var oldButton =
+                    document.querySelector(
+                        '.seatButton[data-seat-id="' + oldSeatId + '"]'
+                    );
+
+                if (oldButton) {
+                    oldButton.classList.remove("seat-selected");
+                }
+            }
+
+            // Check whether another passenger already selected this seat
+            for (var id in selectedSeats) {
+
+                if (id != passengerId &&
+                    selectedSeats[id].seatId == seatId) {
+
+                    alert("This seat has already been selected by another passenger.");
+                    return;
+                }
+            }
+
+            // Store selection
+            selectedSeats[passengerId] = {
+                seatId: seatId,
+                seatNumber: seatNumber,
+                price: price,
+                passengerName: passengerName
+            };
+
+            // Reset all seat buttons belonging to this passenger
+            document.querySelectorAll(".seatButton").forEach(function (btn) {
+                btn.classList.remove("seat-selected");
+            });
+
+            // Highlight selected seat
+            this.classList.add("seat-selected");
+
+            displaySelectedSeats();
+            createHiddenInputs();
+        });
+    });
+
+
+    function displaySelectedSeats() {
+
+        var container = document.getElementById("selectedSeats");
+
+        container.innerHTML = "";
+
+        var count = 0;
+
+        for (var passengerId in selectedSeats) {
+
+            var selection = selectedSeats[passengerId];
+
+            var div = document.createElement("div");
+
+            div.className = "alert alert-secondary";
+
+            div.innerHTML =
+                "<strong>" +
+                selection.passengerName +
+                "</strong> → Seat " +
+                selection.seatNumber +
+                " (₹" +
+                selection.price +
+                ")";
+
+            container.appendChild(div);
+
+            count++;
+        }
+
+        if (count === 0) {
+
+            container.innerHTML =
+                '<p class="text-muted">No seats selected yet.</p>';
+        }
+    }
+
+
+    function createHiddenInputs() {
+
+        var container =
+            document.getElementById("seatAssignments");
+
+        container.innerHTML = "";
+
+        for (var passengerId in selectedSeats) {
+
+            var input =
+                document.createElement("input");
+
+            input.type = "hidden";
+
+            input.name =
+                "seatAssignments[" + passengerId + "]";
+
+            input.value =
+                selectedSeats[passengerId].seatId;
+
+            container.appendChild(input);
+        }
+    }
+
+
+    document.getElementById("seatForm").addEventListener("submit", function (e) {
+
+        var passengerSelect =
+            document.getElementById("passengerSelect");
+
+        var passengerCount =
+            passengerSelect.options.length - 1;
+
+        var selectedCount =
+            Object.keys(selectedSeats).length;
+
+        if (selectedCount !== passengerCount) {
+
+            e.preventDefault();
+
+            alert(
+                "Please select exactly one seat for every passenger."
+            );
+
+            return;
+        }
+
+        createHiddenInputs();
+    });
+
+</script>
