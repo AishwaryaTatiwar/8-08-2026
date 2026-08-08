@@ -261,4 +261,17 @@ Flight details
 Passenger count
 Total amount
 using the data prepared by the controller from Session.
+SearchFlights View
+@foreach (var flight in Model)
+{
+    <tr>
+        <td>@flight.Source → @flight.Destination</td>
+        <td>@flight.DepartureTime.ToString("dd MMM, HH:mm")</td>
+        <td>@flight.Price.ToString("C")</td>
+        <td>@flight.AvailableSeats</td>
+        <td>
+            @Html.ActionLink("Book Now", "PassengerDetails", "Booking", new { id = flight.FlightID }, null)
+        </td>
+    </tr>
+}
 
