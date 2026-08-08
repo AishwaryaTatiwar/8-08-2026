@@ -1,0 +1,157 @@
+@model AirlineMgmtSystem.ViewModels.PassengerDetailsViewModel
+
+@{
+    ViewBag.Title = "Passenger Details";
+}
+
+<h2>Passenger Details</h2>
+
+<div>
+    <strong>Flight:</strong> @Model.FlightNumber
+    <br />
+    <strong>Route:</strong> @Model.Source → @Model.Destination
+    <br />
+    <strong>Fare:</strong> ₹@Model.Price
+</div>
+
+<hr />
+
+@using (Html.BeginForm("PassengerDetails", "Booking", FormMethod.Post, new { id = "passengerForm" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.FlightID)
+
+    <div id="passengers">
+
+        @for (int i = 0; i < Model.Passengers.Count; i++)
+        {
+            <div class="passenger">
+                <h4>Passenger @(i + 1)</h4>
+
+                <input type="text"
+                       name="Passengers[@i].PassengerName"
+                       placeholder="Name"
+                       required />
+
+                <input type="number"
+                       name="Passengers[@i].PassengerAge"
+                       placeholder="Age"
+                       min="1"
+                       max="120"
+                       required />
+
+                <select name="Passengers[@i].PassengerGender" required>
+                    <option value="">Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                    <option value="Other">Other</option>
+                </select>
+
+                <button type="button" class="remove">
+                    Remove
+                </button>
+            </div>
+        }
+
+    </div>
+
+    <br />
+
+    <button type="button" id="addPassenger">
+        + Add Passenger
+    </button>
+
+    <button type="submit">
+        Continue to Seat Selection
+    </button>
+}
+
+<script>
+
+    const container = document.getElementById("passengers");
+    const form = document.getElementById("passengerForm");
+
+    // Add passenger
+    document.getElementById("addPassenger").onclick = function () {
+
+        const index = container.children.length;
+
+        const div = document.createElement("div");
+
+        div.className = "passenger";
+
+        div.innerHTML = `
+            <h4>Passenger ${index + 1}</h4>
+
+            <input type="text"
+                   name="Passengers[${index}].PassengerName"
+                   placeholder="Name"
+                   required />
+
+            <input type="number"
+                   name="Passengers[${index}].PassengerAge"
+                   placeholder="Age"
+                   min="1"
+                   max="120"
+                   required />
+
+            <select name="Passengers[${index}].PassengerGender"
+                    required>
+                <option value="">Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+            </select>
+
+            <button type="button" class="remove">
+                Remove
+            </button>
+        `;
+
+        container.appendChild(div);
+    };
+
+
+    // Remove passenger
+    container.onclick = function (e) {
+
+        if (!e.target.classList.contains("remove"))
+            return;
+
+        if (container.children.length === 1) {
+            alert("At least one passenger is required.");
+            return;
+        }
+
+        e.target.parentElement.remove();
+
+        reindexPassengers();
+    };
+
+
+    // Fix indexes after removing passenger
+    function reindexPassengers() {
+
+        const passengers =
+            container.querySelectorAll(".passenger");
+
+        passengers.forEach(function (passenger, index) {
+
+            passenger.querySelector("h4").textContent =
+                "Passenger " + (index + 1);
+
+            const fields =
+                passenger.querySelectorAll("input, select");
+
+            fields[0].name =
+                `Passengers[${index}].PassengerName`;
+
+            fields[1].name =
+                `Passengers[${index}].PassengerAge`;
+
+            fields[2].name =
+                `Passengers[${index}].PassengerGender`;
+        });
+    }
+
+</script>
