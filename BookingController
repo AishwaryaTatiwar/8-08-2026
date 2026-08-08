@@ -49,7 +49,6 @@ namespace Airlinemgmtsystem.Controllers
             if (flight == null)
                 return HttpNotFound();
 
-            // Stash everything in session — nothing hits the DB yet
             Session[SESSION_FLIGHT_ID] = FlightID;
             Session[SESSION_PASSENGERS] = Passengers;
             Session[SESSION_FINAL_AMOUNT] = flight.Price * Passengers.Count;
@@ -70,7 +69,6 @@ namespace Airlinemgmtsystem.Controllers
             ViewBag.BaseFare = Session[SESSION_FINAL_AMOUNT];
             ViewBag.Passengers = Session[SESSION_PASSENGERS] as List<Passenger>;
 
-            // Seat availability must always come live from the DB
             ViewBag.Seats = db.FlightSeats
                               .Where(x => x.FlightID == flightId)
                               .OrderBy(x => x.SeatNumber)
@@ -90,7 +88,7 @@ namespace Airlinemgmtsystem.Controllers
             if (Session[SESSION_PASSENGERS] == null)
                 return RedirectToAction("Index");
 
-            var seatMap = new Dictionary<int, int>(); // passengerIndex -> SeatID
+            var seatMap = new Dictionary<int, int>();
             for (int i = 0; i < seatId.Length; i++)
                 seatMap[passengerIndex[i]] = seatId[i];
 
@@ -143,19 +141,6 @@ namespace Airlinemgmtsystem.Controllers
             {
                 try
                 {
-                    // Re-check seat availability right before committing
-                    var seatIds = seatMap.Values.ToList();
-                    var seats = db.FlightSeats
-                                  .Where(s => seatIds.Contains(s.SeatID))
-                                  .ToList();
-
-                    if (seats.Any(s => s.IsBooked))
-                    {
-                        transaction.Rollback();
-                        TempData["Error"] = "One or more selected seats were just booked. Please choose again.";
-                        return RedirectToAction("SeatSelection");
-                    }
-
                     // 1. Create the booking
                     Booking booking = new Booking
                     {
@@ -186,7 +171,13 @@ namespace Airlinemgmtsystem.Controllers
                         }
                     }
 
-                    // 3. Record payment
+                    // 3. Decrement available seats on the flight
+                    Flight flight = db.Flights.Find(flightId);
+                    flight.AvailableSeats -= passengers.Count;
+                    if (flight.AvailableSeats < 0)
+                        flight.AvailableSeats = 0; // safety floor, shouldn't happen
+
+                    // 4. Record payment
                     Payment payment = new Payment
                     {
                         BookingID = booking.BookingID,
