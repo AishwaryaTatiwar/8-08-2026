@@ -1,0 +1,115 @@
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult SeatSelection(
+    int bookingId,
+    Dictionary<int, int> seatAssignments)
+{
+    var booking = db.Bookings
+        .FirstOrDefault(b => b.BookingID == bookingId);
+
+    if (booking == null)
+        return HttpNotFound();
+
+    var passengers = db.Passengers
+        .Where(p => p.BookingID == bookingId)
+        .ToList();
+
+    if (passengers.Count == 0)
+    {
+        TempData["Message"] = "No passengers found.";
+        return RedirectToAction("SeatSelection",
+            new { bookingId = bookingId });
+    }
+
+    if (seatAssignments == null ||
+        seatAssignments.Count != passengers.Count)
+    {
+        TempData["Message"] =
+            "Please select exactly one seat for every passenger.";
+
+        return RedirectToAction("SeatSelection",
+            new { bookingId = bookingId });
+    }
+
+    decimal seatCharges = 0;
+
+    foreach (var passenger in passengers)
+    {
+        if (!seatAssignments.ContainsKey(passenger.PassengerID))
+        {
+            TempData["Message"] =
+                "Please select a seat for " +
+                passenger.PassengerName;
+
+            return RedirectToAction("SeatSelection",
+                new { bookingId = bookingId });
+        }
+
+        int seatId =
+            seatAssignments[passenger.PassengerID];
+
+        var seat = db.FlightSeats
+            .FirstOrDefault(s =>
+                s.SeatID == seatId &&
+                s.FlightID == booking.FlightID);
+
+        if (seat == null)
+        {
+            TempData["Message"] = "Invalid seat selected.";
+
+            return RedirectToAction("SeatSelection",
+                new { bookingId = bookingId });
+        }
+
+        if (seat.IsBooked)
+        {
+            TempData["Message"] =
+                "Seat " + seat.SeatNumber +
+                " is already booked.";
+
+            return RedirectToAction("SeatSelection",
+                new { bookingId = bookingId });
+        }
+
+        // Save seat against passenger
+        passenger.SeatID = seatId;
+
+        // Calculate seat charge
+        if (seat.SeatType == "Window")
+        {
+            seatCharges += 800;
+        }
+        else if (seat.SeatType == "Aisle")
+        {
+            seatCharges += 500;
+        }
+        else
+        {
+            seatCharges += 300;
+        }
+
+        // Mark seat booked
+        seat.IsBooked = true;
+    }
+
+    // Use your actual fare column here
+    decimal baseFare = booking.Flight.Fare;
+
+    decimal totalAmount =
+        baseFare + seatCharges;
+
+    // Store payment information temporarily
+    Session["BookingID"] = bookingId;
+    Session["BaseFare"] = baseFare;
+    Session["SeatCharges"] = seatCharges;
+    Session["TotalAmount"] = totalAmount;
+
+    db.SaveChanges();
+
+    return RedirectToAction(
+        "Payment",
+        new
+        {
+            bookingId = bookingId
+        });
+}
