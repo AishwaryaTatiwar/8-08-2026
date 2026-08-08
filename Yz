@@ -1,0 +1,209 @@
+@model IEnumerable<AirlineMgmtSystem.User>
+
+@{
+    ViewBag.Title = "Manage Users";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold">
+            <i class="bi bi-people-fill"></i>
+            Manage Users
+        </h2>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Success"]
+        </div>
+    }
+
+    <div class="card shadow">
+
+        <div class="card-body">
+
+            <!-- Page Size -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+
+                <div>
+                    <label class="me-2">Show</label>
+
+                    <select class="form-select d-inline-block w-auto"
+                            onchange="window.location.href=this.value">
+
+                        <option value="@Url.Action("ManageUsers", new { page = 1, pageSize = 5 })"
+                                @(ViewBag.PageSize == 5 ? "selected" : "")>
+                            5
+                        </option>
+
+                        <option value="@Url.Action("ManageUsers", new { page = 1, pageSize = 10 })"
+                                @(ViewBag.PageSize == 10 ? "selected" : "")>
+                            10
+                        </option>
+
+                        <option value="@Url.Action("ManageUsers", new { page = 1, pageSize = 20 })"
+                                @(ViewBag.PageSize == 20 ? "selected" : "")>
+                            20
+                        </option>
+
+                    </select>
+
+                    <span class="ms-2">entries</span>
+                </div>
+
+            </div>
+
+
+            <!-- Users Table -->
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover table-striped align-middle">
+
+                    <thead class="table-primary">
+
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Created On</th>
+                            <th>Action</th>
+                        </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                        @if (Model != null && Model.Any())
+                        {
+                            foreach (var item in Model)
+                            {
+                                <tr>
+
+                                    <td>
+                                        @item.UserID
+                                    </td>
+
+                                    <td>
+                                        @item.Username
+                                    </td>
+
+                                    <td>
+                                        @item.Email
+                                    </td>
+
+                                    <td>
+                                        @item.Role
+                                    </td>
+
+                                    <td>
+                                        @item.CreatedAt.ToString("dd-MM-yyyy HH:mm")
+                                    </td>
+
+                                    <td>
+
+                                        <button type="button"
+                                                class="btn btn-warning btn-sm edit-role-btn"
+                                                data-user-id="@item.UserID"
+                                                data-username="@item.Username"
+                                                data-email="@item.Email"
+                                                data-role="@item.Role"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#editRoleModal">
+
+                                            <i class="bi bi-pencil-square"></i>
+                                            Edit Role
+
+                                        </button>
+
+                                    </td>
+
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6"
+                                    class="text-center text-danger">
+                                    No Users Found
+                                </td>
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+            <!-- Pagination -->
+            @if (ViewBag.TotalPages > 1)
+            {
+                <nav class="mt-4">
+
+                    <ul class="pagination justify-content-center">
+
+                        <!-- Previous -->
+                        @if (ViewBag.CurrentPage > 1)
+                        {
+                            <li class="page-item">
+
+                                <a class="page-link"
+                                   href="@Url.Action("ManageUsers", new {
+                                       page = ViewBag.CurrentPage - 1,
+                                       pageSize = ViewBag.PageSize
+                                   })">
+
+                                    Previous
+
+                                </a>
+
+                            </li>
+                        }
+
+
+                        <!-- Page Numbers -->
+                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        {
+                            if (i == ViewBag.CurrentPage)
+                            {
+                                <li class="page-item active">
+
+                                    <span class="page-link">
+                                        @i
+                                    </span>
+
+                                </li>
+                            }
+                            else
+                            {
+                                <li class="page-item">
+
+                                    <a class="page-link"
+                                       href="@Url.Action("ManageUsers", new {
+                                           page = i,
+                                           pageSize = ViewBag.PageSize
+                                       })">
+
+                                        @i
+
+                                    </a>
+
+                                </li>
+                            }
+                        }
+
+
+                        <!-- Next -->
+                        @if (ViewBag.CurrentPage < ViewBag.TotalPages)
+                        {
+                            <li class="page-item">
+
+                                <a class="page-link"
+                                   href="@Url.Action("ManageUsers", new {
+                                       page = ViewBag.CurrentPage
