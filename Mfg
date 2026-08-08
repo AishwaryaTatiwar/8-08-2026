@@ -1,0 +1,39 @@
+public ActionResult ManageFlights(
+    string airline,
+    int page = 1,
+    int pageSize = 5)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session["Role"].ToString() != "Admin")
+        return RedirectToAction("Index", "Home");
+
+    var query = db.Flights.AsQueryable();
+
+    // Airline filter
+    if (!string.IsNullOrEmpty(airline))
+    {
+        query = query.Where(f => f.Airline == airline);
+    }
+
+    // Existing pagination
+    int totalRecords = query.Count();
+
+    int totalPages = (int)Math.Ceiling(
+        (double)totalRecords / pageSize
+    );
+
+    var flights = query
+        .OrderBy(f => f.FlightID)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
+
+    ViewBag.CurrentPage = page;
+    ViewBag.TotalPages = totalPages;
+    ViewBag.PageSize = pageSize;
+    ViewBag.Airline = airline;
+
+    return View(flights);
+}
