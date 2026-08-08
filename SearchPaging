@@ -1,0 +1,55 @@
+private const int PageSize = 10;
+
+public ActionResult SearchFlights()
+{
+    return View();
+}
+
+[HttpPost]
+public ActionResult SearchFlights(string source, string destination, DateTime travelDate)
+{
+    // Redirect to the GET action so paging links work off query-string params
+    return RedirectToAction("SearchFlights", new
+    {
+        source = source,
+        destination = destination,
+        travelDate = travelDate.ToString("yyyy-MM-dd"),
+        page = 1
+    });
+}
+
+[HttpGet]
+public ActionResult SearchFlights(string source, string destination, DateTime? travelDate, int page = 1)
+{
+    // No search criteria yet — show the blank search form
+    if (string.IsNullOrEmpty(source) || string.IsNullOrEmpty(destination) || travelDate == null)
+        return View();
+
+    if (page < 1) page = 1;
+
+    var query = db.Flights
+                  .Where(f => f.Source == source
+                           && f.Destination == destination
+                           && f.DepartureTime.Year == travelDate.Value.Year
+                           && f.DepartureTime.Month == travelDate.Value.Month
+                           && f.DepartureTime.Day == travelDate.Value.Day
+                           && f.Status == "Scheduled"
+                           && f.AvailableSeats > 0)
+                  .OrderBy(f => f.DepartureTime); // needed for stable paging
+
+    int totalCount = query.Count();
+    int totalPages = (int)Math.Ceiling(totalCount / (double)PageSize);
+
+    var flights = query.Skip((page - 1) * PageSize)
+                        .Take(PageSize)
+                        .ToList();
+
+    ViewBag.Source = source;
+    ViewBag.Destination = destination;
+    ViewBag.TravelDate = travelDate.Value;
+    ViewBag.CurrentPage = page;
+    ViewBag.TotalPages = totalPages;
+    ViewBag.TotalCount = totalCount;
+
+    return View(flights);
+}
