@@ -1,0 +1,63 @@
+<h2>Seat Selection</h2>
+
+<h3>
+    @Model.Source → @Model.Destination
+</h3>
+
+<p>Flight: @Model.FlightNumber</p>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div>
+        @Html.ValidationSummary()
+    </div>
+}
+
+@using (Html.BeginForm("SeatSelection", "Booking", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+
+    @Html.HiddenFor(m => m.FlightID)
+
+    <h3>Select seat for each passenger</h3>
+
+    foreach (var passenger in Model.Passengers)
+    {
+        <div class="passenger-row">
+
+            <strong>
+                @passenger.PassengerName
+            </strong>
+
+            <select name="SeatAssignments[@Model.Passengers.IndexOf(passenger)]"
+                    required>
+
+                <option value="">Select Seat</option>
+
+                @foreach (var seat in Model.Seats)
+                {
+                    if (!seat.IsBooked)
+                    {
+                        <option value="@seat.SeatID">
+                            @seat.SeatNumber
+                            - @seat.SeatType
+                        </option>
+                    }
+                }
+
+            </select>
+
+        </div>
+    }
+
+    <br />
+
+    <p>
+        Base Fare:
+        ₹@Model.BaseFare
+    </p>
+
+    <button type="submit">
+        Continue to Payment
+    </button>
+}
