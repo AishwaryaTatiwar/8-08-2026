@@ -1,0 +1,89 @@
+<div class="card mb-3">
+    <div class="card-body">
+
+        <form method="get" action="@Url.Action("ManageFlights", "Admin")">
+
+            <div class="row">
+
+                <div class="col-md-4">
+                    <label class="form-label">Filter by Airline</label>
+
+                    <select name="airline" class="form-select">
+                        <option value="">All Airlines</option>
+
+                        <option value="Emirates"
+                                @(ViewBag.Airline == "Emirates" ? "selected" : "")>
+                            Emirates
+                        </option>
+
+                        <option value="Qatar Airways"
+                                @(ViewBag.Airline == "Qatar Airways" ? "selected" : "")>
+                            Qatar Airways
+                        </option>
+
+                        <option value="Air India"
+                                @(ViewBag.Airline == "Air India" ? "selected" : "")>
+                            Air India
+                        </option>
+
+                        <option value="IndiGo"
+                                @(ViewBag.Airline == "IndiGo" ? "selected" : "")>
+                            IndiGo
+                        </option>
+
+                    </select>
+                </div>
+
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        Filter
+                    </button>
+
+                    <a href="@Url.Action("ManageFlights", "Admin")"
+                       class="btn btn-secondary">
+                        Clear
+                    </a>
+                </div>
+
+            </div>
+
+        </form>
+
+    </
+
+
+
+public ActionResult ManageFlights(
+    string airline,
+    int page = 1,
+    int pageSize = 10)
+{
+    var flights = db.Flights.AsQueryable();
+
+    // Filter by airline
+    if (!string.IsNullOrEmpty(airline))
+    {
+        flights = flights.Where(x => x.Airline == airline);
+    }
+
+    // Total records after filtering
+    var totalFlights = flights.Count();
+
+    // Pagination
+    var totalPages = (int)Math.Ceiling(
+        (double)totalFlights / pageSize
+    );
+
+    var result = flights
+        .OrderBy(x => x.FlightID)
+        .Skip((page - 1) * pageSize)
+        .Take(pageSize)
+        .ToList();
+
+    ViewBag.Airline = airline;
+    ViewBag.PageSize = pageSize;
+    ViewBag.CurrentPage = page;
+    ViewBag.TotalPages = totalPages;
+
+    return View(result);
+}
