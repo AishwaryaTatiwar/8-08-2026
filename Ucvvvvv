@@ -1,0 +1,38 @@
+public ActionResult Profile(int page = 1)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    int userId = (int)Session["UserID"];
+
+    int pageSize = 5;
+
+    var bookings = db.Bookings
+                     .Where(x => x.UserID == userId)
+                     .OrderByDescending(x => x.BookingDate)
+                     .ToList();
+
+    int totalBookings = bookings.Count;
+
+    var pageBookings = bookings
+                      .Skip((page - 1) * pageSize)
+                      .Take(pageSize)
+                      .ToList();
+
+    // Get flights for these bookings
+    var flightIds = pageBookings
+                    .Select(x => x.FlightID)
+                    .Distinct()
+                    .ToList();
+
+    ViewBag.Flights = db.Flights
+                        .Where(x => flightIds.Contains(x.FlightID))
+                        .ToDictionary(x => x.FlightID);
+
+    ViewBag.CurrentPage = page;
+    ViewBag.TotalPages = (int)Math.Ceiling(
+        (double)totalBookings / pageSize
+    );
+
+    return View(pageBookings);
+}
