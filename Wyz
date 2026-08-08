@@ -1,0 +1,99 @@
+<div class="aircraft-seats">
+
+    @for (int i = 0; i < seats.Count; i += 6)
+    {
+        <div class="seat-row">
+
+            @for (int j = 0; j < 6 && (i + j) < seats.Count; j++)
+            {
+                var seat = seats[i + j];
+
+                if (j == 3)
+                {
+                    <div class="aisle"></div>
+                }
+
+                if (seat.IsBooked)
+                {
+                    <button type="button"
+                            class="seat booked-seat"
+                            disabled>
+                        @seat.SeatNumber
+                    </button>
+                }
+                else
+                {
+                    <button type="button"
+                            class="seat available-seat"
+                            data-seat-id="@seat.SeatID"
+                            data-seat-number="@seat.SeatNumber"
+                            data-seat-type="@seat.SeatType">
+
+                        @seat.SeatNumber
+                    </button>
+                }
+            }
+
+        </div>
+    }
+
+</div>
+<style>
+
+    .aircraft-seats {
+        width: 520px;
+        margin: 20px auto;
+        padding: 35px 20px;
+        background: #eeeeee;
+        border-radius: 120px 120px 40px 40px;
+        border: 2px solid #cccccc;
+    }
+
+    .seat-row {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 8px;
+    }
+
+    .seat {
+        width: 42px;
+        height: 36px;
+        border-radius: 6px;
+        font-size: 10px;
+        font-weight: bold;
+        padding: 0;
+    }
+
+    .available-seat {
+        background: white;
+        border: 2px solid #198754;
+        color: #198754;
+        cursor: pointer;
+    }
+
+    .available-seat:hover {
+        background: #198754;
+        color: white;
+    }
+
+    .booked-seat {
+        background: #dc3545;
+        border: 2px solid #dc3545;
+        color: white;
+        cursor: not-allowed;
+    }
+
+    .aisle {
+        width: 35px;
+        height: 36px;
+    }
+
+    .available-seat.btn-primary {
+        background: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+    }
+
+</style>
