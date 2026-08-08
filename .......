@@ -1,0 +1,380 @@
+@using AirlineMgmtSystem
+@{
+    ViewBag.Title = "Seat Selection";
+
+    var passengers = ViewBag.Passengers as List<Passenger>;
+    var seats = ViewBag.Seats as List<FlightSeat>;
+
+    decimal baseFare = ViewBag.BaseFare != null
+        ? Convert.ToDecimal(ViewBag.BaseFare)
+        : 0;
+}
+
+<div class="container mt-4">
+
+    <div class="card shadow">
+
+        <div class="card-header bg-primary text-white">
+            <h3>Seat Selection</h3>
+        </div>
+
+        <div class="card-body">
+
+            <h5>Select passenger</h5>
+
+            <select id="passengerSelect" class="form-control mb-4">
+                <option value="">-- Select Passenger --</option>
+
+                @for (int i = 0; i < passengers.Count; i++)
+                {
+                    <option value="@i">
+                        @(i + 1). @passengers[i].PassengerName
+                    </option>
+                }
+            </select>
+
+
+            <h5>Select Seat</h5>
+
+            <div class="row">
+
+                @foreach (var seat in seats)
+                {
+                    <div class="col-md-2 mb-2">
+
+                        @if (seat.IsBooked)
+                        {
+                            <button type="button"
+                                    class="btn btn-danger btn-block"
+                                    disabled>
+                                @seat.SeatNumber
+                                <br />
+                                Booked
+                            </button>
+                        }
+                        else
+                        {
+                            <button type="button"
+                                    class="btn btn-outline-primary btn-block seat"
+                                    data-seat-id="@seat.SeatID"
+                                    data-seat-number="@seat.SeatNumber"
+                                    data-seat-type="@seat.SeatType">
+
+                                @seat.SeatNumber
+                                <br />
+                                @seat.SeatType
+                            </button>
+                        }
+
+                    </div>
+                }
+
+            </div>
+
+            <hr />
+
+            <h5>Selected Seats</h5>
+
+            <div id="selectedSeats">
+                <p>No seats selected.</p>
+            </div>
+
+            <h5 class="mt-3">
+                Base Fare:
+                ₹<span id="baseFare">@baseFare</span>
+            </h5>
+
+            <h5>
+                Seat Charges:
+                ₹<span id="seatCharges">0</span>
+            </h5>
+
+            <h4>
+                Total:
+                ₹<span id="totalAmount">@baseFare</span>
+            </h4>
+
+
+            <form method="post"
+                  action="@Url.Action("SeatSelection", "Booking")"
+                  id="seatForm">
+
+                @Html.AntiForgeryToken()
+
+                <div id="hiddenFields"></div>
+
+                <input type="hidden"
+                       name="FinalAmount"
+                       id="finalAmount"
+                       value="@baseFare" />
+
+                <button type="submit"
+                        class="btn btn-success mt-3">
+                    Continue to Payment
+                </button>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+<script>
+
+    var selectedSeats = {};
+
+    var baseFare = @baseFare;
+
+    var currentPassenger = null;
+
+
+    // Passenger selected
+    document.getElementById("passengerSelect").addEventListener("change", function () {
+
+        currentPassenger = this.value;
+
+    });
+
+
+    // Seat selected
+    document.querySelectorAll(".seat").forEach(function (button) {
+
+        button.addEventListener("click", function () {
+
+            if (currentPassenger === null || currentPassenger === "") {
+
+                alert("Please select a passenger first.");
+
+                return;
+            }
+
+
+            var seatId = this.getAttribute("data-seat-id");
+            var seatNumber = this.getAttribute("data-seat-number");
+            var seatType = this.getAttribute("data-seat-type");
+
+
+            // Check if this seat is already selected
+            for (var passenger in selectedSeats) {
+
+                if (selectedSeats[passenger].seatId == seatId) {
+
+                    alert("This seat is already selected.");
+
+                    return;
+                }
+            }
+
+
+            // If passenger already has a seat,
+            // remove old selection
+            if (selectedSeats[currentPassenger]) {
+
+                var oldSeat = selectedSeats[currentPassenger];
+
+                document.querySelectorAll(".seat").forEach(function (btn) {
+
+                    if (btn.getAttribute("data-seat-id") == oldSeat.seatId) {
+
+                        btn.classList.remove("btn-primary");
+                        btn.classList.add("btn-outline-primary");
+
+                    }
+
+                });
+
+            }
+
+
+            // Assign new seat
+            selectedSeats[currentPassenger] = {
+
+                seatId: seatId,
+                seatNumber: seatNumber,
+                seatType: seatType
+
+            };
+
+
+            // Highlight selected seat
+            document.querySelectorAll(".seat").forEach(function (btn) {
+
+                if (btn.getAttribute("data-seat-id") == seatId) {
+
+                    btn.classList.remove("btn-outline-primary");
+                    btn.classList.add("btn-primary");
+
+                }
+
+            });
+
+
+            updateSelectedSeats();
+
+        });
+
+    });
+
+
+    function getSeatCharge(seatType) {
+
+        if (seatType == "Window") {
+
+            return 800;
+
+        }
+        else if (seatType == "Aisle") {
+
+            return 500;
+
+        }
+        else {
+
+            return 300;
+
+        }
+
+    }
+
+
+    function updateSelectedSeats() {
+
+        var container = document.getElementById("selectedSeats");
+
+        container.innerHTML = "";
+
+        var seatCharges = 0;
+
+        var hasSeats = false;
+
+
+        for (var passengerIndex in selectedSeats) {
+
+            hasSeats = true;
+
+            var seat = selectedSeats[passengerIndex];
+
+            var passengerName =
+                document.querySelector(
+                    "#passengerSelect option[value='" +
+                    passengerIndex +
+                    "']"
+                ).textContent;
+
+
+            var charge = getSeatCharge(seat.seatType);
+
+            seatCharges += charge;
+
+
+            container.innerHTML +=
+                "<p>" +
+                passengerName +
+                " → Seat " +
+                seat.seatNumber +
+                " (" +
+                seat.seatType +
+                ") - ₹" +
+                charge +
+                "</p>";
+
+        }
+
+
+        if (!hasSeats) {
+
+            container.innerHTML =
+                "<p>No seats selected.</p>";
+
+        }
+
+
+        var total = baseFare + seatCharges;
+
+
+        document.getElementById("seatCharges").innerText =
+            seatCharges;
+
+        document.getElementById("totalAmount").innerText =
+            total;
+
+        document.getElementById("finalAmount").value =
+            total;
+
+
+        createHiddenFields();
+
+    }
+
+
+    function createHiddenFields() {
+
+        var hiddenFields =
+            document.getElementById("hiddenFields");
+
+        hiddenFields.innerHTML = "";
+
+
+        for (var passengerIndex in selectedSeats) {
+
+            var seatId =
+                selectedSeats[passengerIndex].seatId;
+
+
+            var passengerInput =
+                document.createElement("input");
+
+            passengerInput.type = "hidden";
+
+            passengerInput.name = "passengerIndex";
+
+            passengerInput.value =
+                passengerIndex;
+
+
+            var seatInput =
+                document.createElement("input");
+
+            seatInput.type = "hidden";
+
+            seatInput.name = "seatId";
+
+            seatInput.value =
+                seatId;
+
+
+            hiddenFields.appendChild(passengerInput);
+
+            hiddenFields.appendChild(seatInput);
+
+        }
+
+    }
+
+
+    // Validate before submitting
+    document.getElementById("seatForm").addEventListener("submit", function (event) {
+
+        var passengerCount =
+            @passengers.Count;
+
+        var selectedCount =
+            Object.keys(selectedSeats).length;
+
+
+        if (selectedCount != passengerCount) {
+
+            event.preventDefault();
+
+            alert(
+                "Please select one seat for every passenger."
+            );
+
+            return;
+
+        }
+
+    });
+
+</script>
