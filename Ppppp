@@ -1,0 +1,163 @@
+@model IEnumerable<Airlinemgmtsystem.Booking>
+
+@{
+    ViewBag.Title = "My Profile";
+
+    var flights =
+        ViewBag.Flights as Dictionary<int, Airlinemgmtsystem.Flight>;
+
+    int currentPage = ViewBag.CurrentPage;
+    int totalPages = ViewBag.TotalPages;
+}
+
+<div class="card shadow mb-4">
+
+    <div class="card-header bg-primary text-white">
+        <h3>
+            <i class="bi bi-person-circle"></i>
+            My Profile
+        </h3>
+    </div>
+
+    <div class="card-body">
+
+        <h4 class="mb-3">My Bookings</h4>
+
+        @if (Model != null && Model.Any())
+        {
+            foreach (var booking in Model)
+            {
+                var flight = flights.ContainsKey(booking.FlightID)
+                    ? flights[booking.FlightID]
+                    : null;
+
+                <div class="card mb-3 border-primary">
+
+                    <div class="card-header d-flex justify-content-between">
+
+                        <strong>
+                            Booking #@booking.BookingID
+                        </strong>
+
+                        <span class="badge bg-success">
+                            @booking.BookingStatus
+                        </span>
+
+                    </div>
+
+                    <div class="card-body">
+
+                        <div class="row">
+
+                            <div class="col-md-6">
+
+                                <p>
+                                    <strong>Booking Date:</strong>
+                                    @booking.BookingDate.ToString("dd MMM yyyy")
+                                </p>
+
+                                @if (flight != null)
+                                {
+                                    <p>
+                                        <strong>Flight:</strong>
+                                        @flight.FlightNumber
+                                    </p>
+
+                                    <p>
+                                        <strong>Route:</strong>
+                                        @flight.Source
+                                        →
+                                        @flight.Destination
+                                    </p>
+                                }
+
+                            </div>
+
+                            <div class="col-md-6">
+
+                                @if (flight != null)
+                                {
+                                    <p>
+                                        <strong>Departure:</strong>
+                                        @flight.DepartureTime.ToString("dd MMM yyyy hh:mm tt")
+                                    </p>
+
+                                    <p>
+                                        <strong>Arrival:</strong>
+                                        @flight.ArrivalTime.ToString("dd MMM yyyy hh:mm tt")
+                                    </p>
+                                }
+
+                            </div>
+
+                        </div>
+
+                        <a href="@Url.Action(
+                            "BookingSummary",
+                            "Booking",
+                            new { id = booking.BookingID })"
+                           class="btn btn-primary">
+
+                            View Booking
+
+                        </a>
+
+                    </div>
+
+                </div>
+            }
+
+            <!-- Pagination -->
+            if (totalPages > 1)
+            {
+                <nav>
+                    <ul class="pagination justify-content-center">
+
+                        @if (currentPage > 1)
+                        {
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="@Url.Action("Profile", "User",
+                                   new { page = currentPage - 1 })">
+                                    Previous
+                                </a>
+                            </li>
+                        }
+
+                        @for (int i = 1; i <= totalPages; i++)
+                        {
+                            <li class="page-item @(i == currentPage ? "active" : "")">
+
+                                <a class="page-link"
+                                   href="@Url.Action("Profile", "User",
+                                   new { page = i })">
+                                    @i
+                                </a>
+
+                            </li>
+                        }
+
+                        @if (currentPage < totalPages)
+                        {
+                            <li class="page-item">
+                                <a class="page-link"
+                                   href="@Url.Action("Profile", "User",
+                                   new { page = currentPage + 1 })">
+                                    Next
+                                </a>
+                            </li>
+                        }
+
+                    </ul>
+                </nav>
+            }
+        }
+        else
+        {
+            <div class="alert alert-info text-center">
+                You have no bookings yet.
+            </div>
+        }
+
+    </div>
+</div>
