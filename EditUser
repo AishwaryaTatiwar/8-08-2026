@@ -1,0 +1,87 @@
+@model AirlineMgmtSystem.User
+
+@{
+    ViewBag.Title = "Edit User";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+
+    <div class="card shadow">
+
+        <div class="card-header bg-primary text-white">
+            <h3 class="mb-0">Edit User Role</h3>
+        </div>
+
+        <div class="card-body">
+
+            @using (Html.BeginForm("EditUser", "Admin", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+
+                @Html.HiddenFor(model => model.UserID)
+
+                <div class="mb-3">
+                    <label class="form-label">Username</label>
+
+                    @Html.TextBoxFor(
+                        model => model.Username,
+                        new
+                        {
+                            @class = "form-control",
+                            @readonly = "readonly"
+                        })
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+
+                    @Html.TextBoxFor(
+                        model => model.Email,
+                        new
+                        {
+                            @class = "form-control",
+                            @readonly = "readonly"
+                        })
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Role</label>
+
+                    @Html.DropDownListFor(
+                        model => model.Role,
+                        new SelectList(
+                            new[]
+                            {
+                                "User",
+                                "Admin"
+                            },
+                            Model.Role
+                        ),
+                        "-- Select Role --",
+                        new
+                        {
+                            @class = "form-control"
+                        })
+                </div>
+
+                <div class="mt-4">
+
+                    <button type="submit"
+                            class="btn btn-success">
+                        Save Changes
+                    </button>
+
+                    <a href="@Url.Action("ManageUsers", "Admin")"
+                       class="btn btn-secondary">
+                        Cancel
+                    </a>
+
+                </div>
+            }
+
+        </div>
+
+    </div>
+
+</div>
