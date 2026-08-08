@@ -1,0 +1,18 @@
+<!-- Source -->
+<div class="col-md-4">
+    <label class="form-label">Source</label>
+
+    <select name="source" id="source" class="form-control" required>
+        <option value="">Select Source</option>
+    </select>
+</div>
+
+<!-- Destination -->
+<div class="col-md-4">
+    <label class="form-label">Destination</label>
+
+    <select name="destination" id="destination"
+            class="form-control" required>
+        <option value="">Select Destination</option>
+    </select>
+</div>
