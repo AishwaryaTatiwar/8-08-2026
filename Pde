@@ -1,0 +1,52 @@
+@model AirlineMgmtSystem.ViewModels.PassengerDetailsViewModel
+
+@{
+    ViewBag.Title = "Passenger Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+
+    <div class="card shadow">
+
+        <div class="card-header bg-primary text-white">
+            <h3>Passenger Details</h3>
+        </div>
+
+        <div class="card-body">
+
+            <!-- Flight Details -->
+
+            <h4>Flight Information</h4>
+
+            <hr />
+
+            <div class="row">
+
+                <div class="col-md-3">
+                    <strong>Flight Number</strong>
+                    <p>@Model.FlightNumber</p>
+                </div>
+
+                <div class="col-md-3">
+                    <strong>From</strong>
+                    <p>@Model.Source</p>
+                </div>
+
+                <div class="col-md-3">
+                    <strong>To</strong>
+                    <p>@Model.Destination</p>
+                </div>
+
+                <div class="col-md-3">
+                    <strong>Price</strong>
+                    <p>₹ @Model.Price</p>
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
