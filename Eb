@@ -109,3 +109,28 @@
 
     });
 </script>
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult EditBooking(int BookingID, string BookingStatus)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session["Role"].ToString() != "Admin")
+        return RedirectToAction("Index", "Home");
+
+    var booking = db.Bookings
+                    .FirstOrDefault(b => b.BookingID == BookingID);
+
+    if (booking == null)
+        return HttpNotFound();
+
+    // Update only the booking status
+    booking.BookingStatus = BookingStatus;
+
+    db.SaveChanges();
+
+    TempData["Success"] = "Booking status updated successfully.";
+
+    return RedirectToAction("ManageBooking");
+}
