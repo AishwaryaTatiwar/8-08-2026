@@ -1,102 +1,24 @@
-@model IEnumerable<Airlinemgmtsystem.Flight>
-
-@{
-    ViewBag.Title = "Search Flights";
-    Layout = "~/Views/Shared/_Layout.cshtml";
-}
-
-<div class="card shadow mb-4">
-    <div class="card-header bg-primary text-white">
-        <h3><i class="bi bi-search"></i> Search Flights</h3>
-    </div>
-    <div class="card-body">
-       @using (Html.BeginForm())
+public ActionResult Payment()
 {
-    <div class="row">
-        <div class="col-md-4">
-            <label class="form-label">Source</label>
-            <input type="text" name="source" class="form-control" required />
-        </div>
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
 
-        <div class="col-md-4">
-            <label class="form-label">Destination</label>
-            <input type="text" name="destination" class="form-control" required />
-        </div>
+    if (Session[SESSION_FLIGHT_ID] == null ||
+        Session[SESSION_PASSENGERS] == null ||
+        Session[SESSION_SEAT_MAP] == null ||
+        Session[SESSION_FINAL_AMOUNT] == null)
+        return RedirectToAction("Index");
 
-        <div class="col-md-3">
-            <label class="form-label">Travel Date</label>
-            <input type="date" name="travelDate" class="form-control" required />
-        </div>
+    int flightId = (int)Session[SESSION_FLIGHT_ID];
 
-        <div class="col-md-1 d-grid">
-            <label>&nbsp;</label>
-            <button class="btn btn-primary">
-                <i class="bi bi-search"></i>
-            </button>
-        </div>
-    </div>
-}
-    </div>
-</div>
+    var flight = db.Flights.Find(flightId);
 
-@if (Model != null)
-{
-    if (Model.Any())
-    {
-        <div class="row">
-            @foreach (var item in Model)
-            {
-                <div class="col-lg-6 mb-4">
-                    <div class="card shadow h-100 border-primary">
-                        <div class="card-header bg-primary text-white d-flex justify-content-between">
-                            <strong>@item.Airline</strong>
-                            <span class="badge bg-success">@item.Status</span>
-                        </div>
-                        <div class="card-body">
-                            <h5>@item.FlightNumber</h5>
-                            <div class="row mt-3">
-                                <div class="col-6">
-                                    <small class="text-muted">From</small>
-                                    <h6>@item.Source</h6>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <small class="text-muted">To</small>
-                                    <h6>@item.Destination</h6>
-                                </div>
-                            </div>
-                            <hr />
-                            <div class="row">
-                                <div class="col-6">
-                                    <small>Departure</small><br />
-                                    <strong>@item.DepartureTime.ToString("dd MMM yyyy")</strong><br />
-                                    <strong>@item.DepartureTime.ToString("hh:mm tt")</strong>
-                                </div>
-                                <div class="col-6 text-end">
-                                    <small>Arrival</small><br />
-                                    <strong>@item.ArrivalTime.ToString("dd MMM yyyy")</strong><br />
-                                    <strong>@item.ArrivalTime.ToString("hh:mm tt")</strong>
-                                </div>
-                            </div>
-                            <hr />
-                            <div class="d-flex justify-content-between">
-                                <span>Seats Left: <strong>@item.AvailableSeats</strong></span>
-                                <h4 class="text-success">₹@item.Price</h4>
-                            </div>
-                        </div>
-                        <div class="card-footer text-end">
-                            <a href="@Url.Action("PassengerDetails","Booking",new{id=item.FlightID})" class="btn btn-success">
-                                <i class="bi bi-ticket-perforated"></i> Book Now
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-warning text-center">
-            No scheduled flights found.
-        </div>
-    }
+    if (flight == null)
+        return HttpNotFound();
+
+    ViewBag.Flight = flight;
+    ViewBag.Passengers = Session[SESSION_PASSENGERS];
+    ViewBag.FinalAmount = Session[SESSION_FINAL_AMOUNT];
+
+    return View();
 }
