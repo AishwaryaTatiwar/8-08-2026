@@ -1,0 +1,73 @@
+<h2>Payment</h2>
+
+<h3>Flight Details</h3>
+
+<p>
+    @Model.Source → @Model.Destination
+</p>
+
+<p>
+    Flight: @Model.FlightNumber
+</p>
+
+<h3>Passengers</h3>
+
+@for (int i = 0; i < Model.Passengers.Count; i++)
+{
+    var passenger = Model.Passengers[i];
+
+    <p>
+        @passenger.PassengerName
+
+        @if (Model.SeatAssignments.ContainsKey(i))
+        {
+            int seatId = Model.SeatAssignments[i];
+
+            var seat = Model.Seats?
+                .FirstOrDefault(s => s.SeatID == seatId);
+
+            if (seat != null)
+            {
+                <span>
+                    - Seat @seat.SeatNumber
+                </span>
+            }
+        }
+    </p>
+}
+
+<h3>Fare Summary</h3>
+
+<p>
+    Base Fare: ₹@Model.BaseFare
+</p>
+
+<p>
+    Seat Charges: ₹@Model.SeatCharges
+</p>
+
+<hr />
+
+<h3>
+    Total: ₹@Model.TotalAmount
+</h3>
+
+@using (Html.BeginForm("Payment", "Booking", FormMethod.Post))
+{
+    @Html.AntiForgeryToken()
+
+    <label>Payment Method</label>
+
+    <select name="PaymentMethod" required>
+        <option value="">Select Payment Method</option>
+        <option value="Card">Card</option>
+        <option value="UPI">UPI</option>
+        <option value="NetBanking">Net Banking</option>
+    </select>
+
+    <br /><br />
+
+    <button type="submit">
+        Pay ₹@Model.TotalAmount
+    </button>
+}
