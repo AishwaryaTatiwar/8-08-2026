@@ -1,0 +1,115 @@
+[HttpPost]
+[ValidateAntiForgeryToken]
+public ActionResult SeatSelection(
+    int[] passengerIndex,
+    int[] seatId,
+    decimal FinalAmount)
+{
+    // 1. Check login
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    // 2. Check required session data
+    if (Session[SESSION_FLIGHT_ID] == null ||
+        Session[SESSION_PASSENGERS] == null)
+    {
+        return RedirectToAction("Index");
+    }
+
+    // 3. Get FlightID OUTSIDE the LINQ query
+    int flightId =
+        Convert.ToInt32(Session[SESSION_FLIGHT_ID]);
+
+    // 4. Get passengers from Session
+    var passengers =
+        Session[SESSION_PASSENGERS] as List<Passenger>;
+
+    if (passengers == null || passengers.Count == 0)
+    {
+        TempData["Message"] = "No passengers found.";
+        return RedirectToAction("SeatSelection");
+    }
+
+    // 5. Check seat data
+    if (passengerIndex == null ||
+        seatId == null ||
+        passengerIndex.Length != seatId.Length ||
+        passengerIndex.Length != passengers.Count)
+    {
+        TempData["Message"] =
+            "Please select exactly one seat for every passenger.";
+
+        return RedirectToAction("SeatSelection");
+    }
+
+    // 6. Create PassengerIndex -> SeatID mapping
+    var seatMap = new Dictionary<int, int>();
+
+    for (int i = 0; i < passengerIndex.Length; i++)
+    {
+        int pIndex = passengerIndex[i];
+        int selectedSeatId = seatId[i];
+
+        // Check passenger index
+        if (pIndex < 0 || pIndex >= passengers.Count)
+        {
+            TempData["Message"] = "Invalid passenger.";
+            return RedirectToAction("SeatSelection");
+        }
+
+        // Prevent duplicate passenger
+        if (seatMap.ContainsKey(pIndex))
+        {
+            TempData["Message"] =
+                "A passenger cannot have multiple seats.";
+
+            return RedirectToAction("SeatSelection");
+        }
+
+        // Prevent same seat being selected twice
+        if (seatMap.ContainsValue(selectedSeatId))
+        {
+            TempData["Message"] =
+                "The same seat cannot be selected twice.";
+
+            return RedirectToAction("SeatSelection");
+        }
+
+        // 7. Find seat
+        // IMPORTANT: use flightId variable, NOT Session inside LINQ
+        var seat = db.FlightSeats
+            .FirstOrDefault(s =>
+                s.SeatID == selectedSeatId &&
+                s.FlightID == flightId);
+
+        if (seat == null)
+        {
+            TempData["Message"] =
+                "Invalid seat selected.";
+
+            return RedirectToAction("SeatSelection");
+        }
+
+        // 8. Check if already booked
+        if (seat.IsBooked)
+        {
+            TempData["Message"] =
+                "Seat " + seat.SeatNumber +
+                " is already booked.";
+
+            return RedirectToAction("SeatSelection");
+        }
+
+        // Add passenger -> seat
+        seatMap.Add(pIndex, selectedSeatId);
+    }
+
+    // 9. Store selected seats in Session
+    Session[SESSION_SEAT_MAP] = seatMap;
+
+    // 10. Store final amount in Session
+    Session[SESSION_FINAL_AMOUNT] = FinalAmount;
+
+    // 11. Go to Payment
+    return RedirectToAction("Payment");
+}
