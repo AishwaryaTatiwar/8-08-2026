@@ -134,3 +134,20 @@ public ActionResult EditBooking(int BookingID, string BookingStatus)
 
     return RedirectToAction("ManageBooking");
 }
+[HttpGet]
+public ActionResult EditBooking(int id)
+{
+    if (Session["UserID"] == null)
+        return RedirectToAction("Login", "User");
+
+    if (Session["Role"].ToString() != "Admin")
+        return RedirectToAction("Index", "Home");
+
+    var booking = db.Bookings
+                    .FirstOrDefault(b => b.BookingID == id);
+
+    if (booking == null)
+        return HttpNotFound();
+
+    return PartialView("EditBooking", booking);
+}
