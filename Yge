@@ -1,0 +1,75 @@
+public JsonResult GetSources()
+{
+    var sources = db.Flights
+                    .Select(x => x.Source)
+                    .Distinct()
+                    .OrderBy(x => x)
+                    .ToList();
+
+    return Json(sources, JsonRequestBehavior.AllowGet);
+}
+
+public JsonResult GetDestinations(string source)
+{
+    var destinations = db.Flights
+                         .Where(x => x.Source == source)
+                         .Select(x => x.Destination)
+                         .Distinct()
+                         .OrderBy(x => x)
+                         .ToList();
+
+    return Json(destinations, JsonRequestBehavior.AllowGet);
+
+<label class="form-label">Source</label>
+<select name="source" id="source" class="form-control" required>
+    <option value="">Select Source</option>
+</select>
+
+<label class="form-label">Destination</label>
+<select name="destination" id="destination" class="form-control" required>
+    <option value="">Select Destination</option>
+</select>
+
+<script>
+$(document).ready(function () {
+
+    // Load source cities
+    $.getJSON('@Url.Action("GetSources", "Home")', function (data) {
+
+        $.each(data, function (i, source) {
+            $('#source').append(
+                $('<option></option>').val(source).text(source)
+            );
+        });
+
+    });
+
+    // Load destinations when source changes
+    $('#source').change(function () {
+
+        var source = $(this).val();
+
+        $('#destination')
+            .empty()
+            .append('<option value="">Select Destination</option>');
+
+        if (source !== '') {
+
+            $.getJSON('@Url.Action("GetDestinations", "Home")',
+                { source: source },
+                function (data) {
+
+                    $.each(data, function (i, destination) {
+                        $('#destination').append(
+                            $('<option></option>')
+                                .val(destination)
+                                .text(destination)
+                        );
+                    });
+
+                });
+        }
+    });
+
+});
+</script>
