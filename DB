@@ -1,0 +1,158 @@
+<div class="row mt-4">
+
+    <!-- Booking Status -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                Booking Status
+            </div>
+
+            <div class="card-body">
+                <canvas id="bookingChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Flight Status -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-info text-white">
+                Flight Status
+            </div>
+
+            <div class="card-body">
+                <canvas id="flightChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Revenue -->
+    <div class="col-md-4 mb-4">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                Monthly Revenue
+            </div>
+
+            <div class="card-body">
+                <canvas id="revenueChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+</div>
+<script>
+
+    // --------------------------------
+    // BOOKING STATUS CHART
+    // --------------------------------
+
+    const bookingCtx =
+        document.getElementById('bookingChart').getContext('2d');
+
+    new Chart(bookingCtx, {
+        type: 'doughnut',
+
+        data: {
+            labels: [
+                'Confirmed',
+                'Pending',
+                'Cancelled'
+            ],
+
+            datasets: [{
+                data: [
+                    @ViewBag.ConfirmedBookings,
+                    @ViewBag.PendingBookings,
+                    @ViewBag.CancelledBookings
+                ]
+            }]
+        },
+
+        options: {
+            responsive: true
+        }
+    });
+
+
+    // --------------------------------
+    // FLIGHT STATUS CHART
+    // --------------------------------
+
+    const flightCtx =
+        document.getElementById('flightChart').getContext('2d');
+
+    new Chart(flightCtx, {
+        type: 'bar',
+
+        data: {
+            labels: [
+                'Scheduled',
+                'Delayed',
+                'Cancelled'
+            ],
+
+            datasets: [{
+                label: 'Flights',
+
+                data: [
+                    @ViewBag.ScheduledFlights,
+                    @ViewBag.DelayedFlights,
+                    @ViewBag.CancelledFlights
+                ]
+            }]
+        },
+
+        options: {
+            responsive: true,
+
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+
+    // --------------------------------
+    // MONTHLY REVENUE CHART
+    // --------------------------------
+
+    const revenueCtx =
+        document.getElementById('revenueChart').getContext('2d');
+
+    new Chart(revenueCtx, {
+        type: 'line',
+
+        data: {
+            labels: [
+                @Html.Raw(ViewBag.RevenueLabels)
+            ],
+
+            datasets: [{
+                label: 'Revenue',
+
+                data: [
+                    @Html.Raw(ViewBag.RevenueData)
+                ],
+
+                fill: false,
+
+                tension: 0.3
+            }]
+        },
+
+        options: {
+            responsive: true,
+
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+</script>
