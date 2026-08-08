@@ -1,0 +1,57 @@
+<!-- Flight Filters -->
+<div class="card mb-3">
+    <div class="card-body">
+
+        <form method="get" action="@Url.Action("ManageFlights", "Admin")">
+
+            <div class="row">
+
+                <!-- Source -->
+                <div class="col-md-3">
+                    <label>Source</label>
+                    <input type="text"
+                           name="source"
+                           value="@ViewBag.Source"
+                           class="form-control"
+                           placeholder="Enter source" />
+                </div>
+
+                <!-- Destination -->
+                <div class="col-md-3">
+                    <label>Destination</label>
+                    <input type="text"
+                           name="destination"
+                           value="@ViewBag.Destination"
+                           class="form-control"
+                           placeholder="Enter destination" />
+                </div>
+
+                <!-- Status -->
+                <div class="col-md-3">
+                    <label>Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Status</option>
+                        <option value="Scheduled">Scheduled</option>
+                        <option value="Delayed">Delayed</option>
+                        <option value="Cancelled">Cancelled</option>
+                    </select>
+                </div>
+
+                <!-- Search button -->
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary me-2">
+                        Filter
+                    </button>
+
+                    <a href="@Url.Action("ManageFlights", "Admin")"
+                       class="btn btn-secondary">
+                        Clear
+                    </a>
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+</div>
