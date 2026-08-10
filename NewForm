@@ -1,0 +1,38 @@
+$(document).ready(function () {
+    $(".create-btn").click(function () {
+        $.ajax({
+            url: "@Url.Action("AddFlight", "Admin")",
+            type: "GET",
+            success: function (data) {
+                $("#flightModal .modal-body").html(data);
+                var modal = new bootstrap.Modal(document.getElementById("flightModal"));
+                modal.show();
+            }
+        });
+    });
+
+    $(document).on("submit", "#flightModal form", function (e) {
+        e.preventDefault();
+
+        var form = $(this);
+
+        $.ajax({
+            url: form.attr("action"),
+            type: "POST",
+            data: form.serialize(),
+            success: function (data) {
+                if ($(data).find("#flightModal").length > 0) {
+                    window.location.reload();
+                } else {
+                    $("#flightModal .modal-body").html(data);
+                }
+            },
+            error: function () {
+                alert("Unable to save flight.");
+            }
+        });
+    });
+
+    // your existing edit code
+    // your existing delete code
+});
